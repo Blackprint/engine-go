@@ -1,23 +1,23 @@
 package engine
 
 import (
-	"fmt"
+	"reflect"
 )
 
 type Cable struct {
-	Type   string
+	Type   reflect.Kind
 	Owner  *Port
 	Target *Port
 }
 
 type CableEvent struct {
-	Cable  Cable
+	Cable  *Cable
 	Port   *Port
 	Target *Port
 }
 
-func NewCable(owner *Port, target *Port) *Cable {
-	return &Cable{
+func NewCable(owner *Port, target *Port) Cable {
+	return Cable{
 		Type:   owner.Type,
 		Owner:  owner,
 		Target: target,
@@ -37,20 +37,21 @@ func (c *Cable) QConnected() {
 		Target: c.Owner,
 	})
 
+	var inp, out *Port
 	if c.Owner.Source == "input" {
-		inp := c.Target
-		out := c.Owner
+		inp = c.Target
+		out = c.Owner
 	} else {
-		inp := c.Owner
-		out := c.Target
+		inp = c.Owner
+		out = c.Target
 	}
 
-	if out.value != nil {
+	if out.Value != nil {
 		inp.QTrigger("value", out)
 	}
 }
 
 // For debugging
-func (c *Cable) QPrint() {
-	fmt.Println("\nCable: " + c.owner.iface.title + "." + c.owner.name + " . " + c.target.name + "." + c.target.iface.title)
+func (c *Cable) String() string {
+	return "\nCable: " + c.Owner.Iface.Title + "." + c.Owner.Name + " . " + c.Target.Name + "." + c.Target.Iface.Title
 }

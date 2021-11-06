@@ -1,32 +1,31 @@
 package engine
 
 import (
-	"github.com/buger/jsonparser"
+	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
 )
 
-type Instance struct{}
-type NodePort map[string]reflect.Kind
+type NodePort map[string]interface{}
 
-type engine struct {
+type Instance struct {
 	Iface     map[string]interface{} // Storing with node id if exist
 	IfaceList map[int]interface{}    // Storing with node index
 	settings  map[string]bool
 }
 
-func New() engine {
-	return engine{}
+func New() Instance {
+	return Instance{}
 }
 
 type SingleInstanceJSON map[string]interface{}
 type metaValue map[string]string
-type nodeList map[string][]map[string]nodeConfig
+type nodeList []nodeConfig
 type nodeConfig struct {
 	I      int                         `json:"i"`
-	Id     int                         `json:"id"`
-	Data   int                         `json:"data"`
+	Id     string                      `json:"id"`
+	Data   interface{}                 `json:"data"`
 	Output map[string][]nodePortTarget `json:"output"`
 }
 type nodePortTarget struct {
@@ -34,7 +33,7 @@ type nodePortTarget struct {
 	Name string `json:"name"`
 }
 
-func (instance *engine) ImportJSON(str []byte) {
+func (instance *Instance) ImportJSON(str []byte) {
 	var data SingleInstanceJSON
 
 	err := json.Unmarshal(str, &data)
@@ -42,56 +41,60 @@ func (instance *engine) ImportJSON(str []byte) {
 		fmt.Println(err)
 	}
 
-	IfaceList := instance.IfaceList
+	ifaceList := instance.IfaceList
 	var nodes []interface{}
 
 	// Prepare all ifaces based on the namespace
 	// before we create cables for them
 	for namespace, ifaces := range data {
+		if namespace == "_" {
+			// meta := ifaces.(metaValue)
+			continue
+		}
+
+		list := ifaces.(nodeList)
+
 		// Every ifaces that using this namespace name
-		for _, iface := range ifaces {
-			i := iface["i"]
-			IfaceList[i] = instance.CreateNode(namespace, map[string]interface{}{
-				"id":   iface["id"],
-				"i":    i,
-				"data": iface["data"],
-			}, nodes)
+		for _, iface := range list {
+			ifaceList[iface.I], nodes = instance.CreateNode(namespace, iface, nodes)
 		}
 	}
 
 	// Create cable only from output and property
 	// > Important to be separated from above, so the cable can reference to loaded ifaces
-	for namespace, ifaces := range data {
-		for _, iface := range ifaces {
-			current := ifaceList[iface["i"]]
+	for _, ifaces := range data {
+		list := ifaces.(nodeList)
+
+		for _, iface := range list {
+			current := ifaceList[iface.I].(Interface)
 
 			// If have output connection
-			out := iface["output"]
+			out := iface.Output
 			if out != nil {
 				// Every output port that have connection
 				for portName, ports := range out {
 					linkPortA := current.Output[portName]
 					if linkPortA == nil {
-						panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", iface["i"], portName))
+						panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", iface.I, portName))
 					}
 
 					// Current output's available targets
 					for _, target := range ports {
-						targetNode := ifaceList[target["i"]]
-						linkPortB := current.Input[target["name"]]
+						targetNode := ifaceList[target.I].(Interface)
+						linkPortB := current.Input[target.Name]
 
 						if linkPortB == nil {
-							panic(fmt.Sprintf("Node port not found for %s with name: %s", targetNode.Title, target["name"]))
+							panic(fmt.Sprintf("Node port not found for %s with name: %s", targetNode.Title, target.Name))
 						}
 
 						log.Printf("%s.%s => %s.%s", current.Title, linkPortA.Name, targetNode.Title, linkPortB.Name)
 
 						cable := NewCable(linkPortA, linkPortB)
-						append(linkPortA.Cables, cable)
-						append(linkPortB.Cables, cable)
+						linkPortA.Cables = append(linkPortA.Cables, cable)
+						linkPortB.Cables = append(linkPortB.Cables, cable)
 
 						cable.QConnected()
-						cable.QPrint()
+						log.Println(cable)
 					}
 				}
 			}
@@ -100,31 +103,36 @@ func (instance *engine) ImportJSON(str []byte) {
 
 	// Call nodes init after creation processes was finished
 	for _, val := range nodes {
-		val.Init()
+		val.(*Node).Init()
 	}
 }
 
-func (instance *engine) Settings(id string, val bool) {
+func (instance *Instance) Settings(id string, val ...bool) bool {
 	if val == nil {
 		return instance.settings[id]
 	}
 
-	instance.settings[id] = val
+	temp := val[0]
+	instance.settings[id] = temp
+	return temp
 }
 
-func (instance *engine) GetNode(id string) {
+func (instance *Instance) GetNode(id interface{}) interface{} {
 	for _, val := range instance.IfaceList {
-		if val.Id == id || val.I == id {
-			return val.Node
+		iface := val.(Interface)
+		if iface.Id == id || iface.I == id {
+			return iface.Node
 		}
 	}
+	return nil
 }
 
-func (instance *engine) GetNodes(namespace string) []interface{} {
+func (instance *Instance) GetNodes(namespace string) []interface{} {
 	var got []interface{} // interface = extends 'Node'
 
 	for _, val := range instance.IfaceList {
-		if val.Namespace == namespace {
+		iface := val.(Interface)
+		if iface.Namespace == namespace {
 			got = append(got, val)
 		}
 	}
@@ -132,26 +140,26 @@ func (instance *engine) GetNodes(namespace string) []interface{} {
 	return got
 }
 
-func (instance *engine) CreateNode(namespace string, options string, nodes *map[string]interface{}) interface{} {
+func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []interface{}) (interface{}, []interface{}) {
 	func_ := QNodeList[namespace]
 	if func_ == nil {
 		panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
 	}
 
-	node := func_(instance) // from registerNode(namespace, func_)
-	iface := node.Iface
+	node := func_(instance).(Node) // from registerNode(namespace, func_)
+	iface := node.Iface.(Interface)
 
-	if iface == nil {
+	if !iface.QInitialized {
 		panic("Node interface was not found, do you forget to call node->setInterface() ?")
 	}
 
 	// Assign the saved options if exist
 	// Must be called here to avoid port trigger
-	if options.data != nil {
+	if options.Data != nil {
 		if iface.Data != nil {
-			deepMerge(iface.Data, options.data)
+			deepMerge(iface.Data, options.Data.(InterfaceData))
 		} else {
-			iface.Data = options.data
+			iface.Data = options.Data.(InterfaceData)
 		}
 	}
 
@@ -159,17 +167,13 @@ func (instance *engine) CreateNode(namespace string, options string, nodes *map[
 	iface.QPrepare()
 
 	iface.Namespace = namespace
-	if options.id != nil {
-		iface.Id = options.id
-		instance.Iface[options.id] = iface
+	if options.Id != "" {
+		iface.Id = options.Id
+		instance.Iface[options.Id] = iface
 	}
 
-	if options.i != nil {
-		iface.I = options.i
-		instance.IfaceList[options.i] = iface
-	} else {
-		instance.IfaceList = append(instance.IfaceList[options.i], iface)
-	}
+	iface.I = options.I
+	instance.IfaceList[options.I] = iface
 
 	iface.Importing = false
 	node.Imported()
@@ -181,18 +185,16 @@ func (instance *engine) CreateNode(namespace string, options string, nodes *map[
 	node.Init()
 	iface.Init()
 
-	return iface
+	return iface, nodes
 }
 
-type objKeyVal map[string]interface{}
-
-func deepMerge(real objKeyVal, merge objKeyVal) {
+func deepMerge(real InterfaceData, merge InterfaceData) {
 	for key, val := range merge {
-		if reflect.KindOf(val) == "map" {
-			deepMerge(real[key], val)
+		if reflect.TypeOf(val).Kind() == reflect.Map {
+			deepMerge(real[key].(InterfaceData), val.(InterfaceData))
 			continue
 		}
 
-		real[key](val)
+		real[key].(GetterSetter)(val)
 	}
 }

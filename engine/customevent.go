@@ -1,19 +1,19 @@
 package engine
 
 import (
-    "strings"
+	"strings"
 )
 
 type eventObj struct {
 	callback interface{}
-	once bool
+	once     bool
 }
 
 type customEvent struct {
-	events map[string] []eventObj {}
+	events map[string][]eventObj
 }
 
-func (e *customEvent) On(evName string, callback interface{}, once bool) {
+func (e *customEvent) listen(evName string, callback interface{}, once bool) {
 	evs := strings.Split(evName, ",")
 
 	for _, name := range evs {
@@ -34,13 +34,17 @@ func (e *customEvent) On(evName string, callback interface{}, once bool) {
 
 		e.events[name] = append(list, eventObj{
 			callback: callback,
-			once: once,
+			once:     once,
 		})
 	}
 }
 
-func (e *customEvent) once(evName string, callback interface{}) {
-	e.On(evName, callback, true)
+func (e *customEvent) On(evName string, callback interface{}) {
+	e.listen(evName, callback, false)
+}
+
+func (e *customEvent) Once(evName string, callback interface{}) {
+	e.listen(evName, callback, true)
 }
 
 func (e *customEvent) Off(evName string, callback interface{}) {
@@ -48,7 +52,7 @@ func (e *customEvent) Off(evName string, callback interface{}) {
 
 	for _, name := range evs {
 		if callback == nil {
-			e.events[name] = []
+			e.events[name] = []eventObj{}
 			break
 		}
 
@@ -63,12 +67,12 @@ func (e *customEvent) Off(evName string, callback interface{}) {
 }
 
 func (e *customEvent) QTrigger(evName string, data interface{}) {
-	list := e.events[name]
+	list := e.events[evName]
 	for i, cb := range list {
-		cb.callback(data)
+		cb.callback.(func(interface{}))(data)
 
 		if cb.once {
-			e.events[name] = append(list[:i], list[i+1:]...)
+			e.events[evName] = append(list[:i], list[i+1:]...)
 		}
 	}
 }

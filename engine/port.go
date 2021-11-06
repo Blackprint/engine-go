@@ -11,21 +11,22 @@ import (
 type Port struct {
 	customEvent
 	Name    string
-	Type    reflect.Type
+	Type    reflect.Kind
 	Cables  []Cable
 	Source  string
-	IFace   Interface
+	Iface   *Interface
 	Default interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Value   interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
+	Func    func(interface{})
 	Sync    bool
 	Feature int
 }
-type getterSetter func(interface{}) interface{}
+type GetterSetter func(...interface{}) interface{}
 
-func (port *Port) createLinker() getterSetter {
-	if port.Type == types.Func {
+func (port *Port) CreateLinker() GetterSetter {
+	if port.Type == types.Function {
 		if port.Source == "output" {
-			return func(data interface{}) interface{} {
+			return func(data ...interface{}) interface{} {
 				var target *Port
 				for _, cable := range port.Cables {
 					if cable.Owner == port {
@@ -34,23 +35,27 @@ func (port *Port) createLinker() getterSetter {
 						target = cable.Owner
 					}
 
-					cable.QPrint()
-					target.Default(data)
+					log.Println(cable)
+					target.Func(data)
 				}
+
+				return nil
 			}
 		}
 
-		return target.Default
+		return func(data ...interface{}) interface{} {
+			return port.Default
+		}
 	}
 
-	return func(val interface{}) interface{} {
+	return func(val ...interface{}) interface{} {
 		// Getter value
-		if val == nil {
+		if len(val) == 0 {
 			// This port must use values from connected output
 			if port.Source == "input" {
 				cableLen := len(port.Cables)
 				if cableLen == 0 {
-					if port.Feature == portTypes.ArrayOf {
+					if port.Feature == portTypes.TypeArrayOf {
 						// ToDo: fix type to follow
 						// the type from port.Type
 
@@ -66,7 +71,7 @@ func (port *Port) createLinker() getterSetter {
 				// Return single data
 				if cableLen == 1 {
 					temp := port.Cables[0]
-					var target Port
+					var target *Port
 
 					if temp.Owner == port {
 						target = temp.Target
@@ -74,13 +79,13 @@ func (port *Port) createLinker() getterSetter {
 						target = temp.Owner
 					}
 
-					target.Iface.Node.Request(target, port.Iface)
+					target.Iface.Node.(*Node).Request(target, port.Iface)
 
 					log.Printf("1. %s -> %s (%s)", port.Name, target.Name, target.Value)
 
 					port.Iface.QRequesting = false
 
-					if port.Feature == portTypes.ArrayOf {
+					if port.Feature == portTypes.TypeArrayOf {
 						var tempVal interface{}
 						if target.Value == nil {
 							tempVal = target.Default
@@ -102,7 +107,7 @@ func (port *Port) createLinker() getterSetter {
 						target = cable.Owner
 					}
 
-					target.Iface.Node.Request(target, port.Iface)
+					target.Iface.Node.(*Node).Request(target, port.Iface)
 					log.Printf("2. %s -> %s (%s)", port.Name, target.Name, target.Value)
 
 					if target.Value == nil {
@@ -113,19 +118,19 @@ func (port *Port) createLinker() getterSetter {
 				}
 
 				port.Iface.QRequesting = false
-				if port.Feature != portTypes.ArrayOf {
+				if port.Feature != portTypes.TypeArrayOf {
 					return data[0]
 				}
 
 				return data
 			}
 
-			if port.Feature == portTypes.ArrayOf {
+			if port.Feature == portTypes.TypeArrayOf {
 				var tempVal interface{}
-				if target.Value == nil {
-					tempVal = target.Default
+				if port.Value == nil {
+					tempVal = port.Default
 				} else {
-					tempVal = target.Value
+					tempVal = port.Value
 				}
 
 				return [](interface{}){tempVal}
@@ -145,13 +150,14 @@ func (port *Port) createLinker() getterSetter {
 
 		// ToDo: do we need feature validation here?
 
-		log.Printf("3. %s = %s", port.Name, val)
+		_val := val[0]
+		log.Printf("3. %s = %s", port.Name, _val)
 
-		port.Value = val
+		port.Value = _val
 		port.QTrigger("value", port)
 		port.sync()
 
-		return val
+		return _val
 	}
 }
 
@@ -165,7 +171,7 @@ func (port *Port) sync() {
 		}
 
 		if target.Iface.QRequesting == false {
-			target.Iface.Node.Update(cable)
+			target.Iface.Node.(*Node).Update(cable)
 		}
 
 		target.QTrigger("value", port)

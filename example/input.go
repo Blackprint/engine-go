@@ -1,17 +1,17 @@
 package example
+
 import (
 	"log"
+
 	Blackprint "github.com/blackprint/engine-go/blackprint"
-	"github.com/blackprint/engine-go/port"
-	"github.com/blackprint/engine-go/types"
 	"github.com/blackprint/engine-go/engine"
+	"github.com/blackprint/engine-go/types"
 )
 
 // This will be called from example.go
-func RegisterInput(){
+func RegisterInput() {
 	RegisterInputSimple()
 }
-
 
 // ============
 type InputSimple struct {
@@ -20,66 +20,71 @@ type InputSimple struct {
 
 // Bring value from imported iface to node output
 func (node InputSimple) Imported() {
-	val := node.Iface.Data['value']();
+	val := node.Iface.(engine.Interface).Data["value"].(engine.GetterSetter)()
 	if val != nil {
-		log.Printf("\x1b[1m\x1b[33mInput\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m", val)
+		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m", val)
 	}
 
-	node.Output['Value']($val);
+	node.Output["Value"].(engine.GetterSetter)(val)
 }
 
 type InputSimpleIFace struct {
 	engine.Interface
 }
+
 func (iface InputSimpleIFace) Changed(val interface{}) {
 	// This node still being imported
 	if iface.Importing != false {
 		return
 	}
 
-	log.Printf("\x1b[1m\x1b[33mInput\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m", val)
+	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m", val)
 
-	iface.Node.Output['Value'](val);
+	node := iface.Node.(engine.Node)
+	node.Output["Value"].(engine.GetterSetter)(val)
 
 	// This will call every connected node
-	iface.Node.Output['Changed']();
+	node.Output["Changed"].(engine.GetterSetter)()
 }
 
-func RegisterInputSimple(){
-	Blackprint.RegisterNode('Example/Input/Simple', func(instance engine.Instance) interface{} {
-		node := InputSimple {
-			Node: engine.Node {
+func RegisterInputSimple() {
+	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) interface{} {
+		node := InputSimple{
+			Node: engine.Node{
 				Instance: instance,
 
 				// Node's Output Port
-				Output: engine.NodePort {
-					'Changed': types.Function,
-					'Value': types.String,
-				}
-			}
+				Output: engine.NodePort{
+					"Changed": types.Function,
+					"Value":   types.String,
+				},
+			},
 		}
 
-		iface := node.SetInterface('BPIC/Example/Input')
+		iface := node.SetInterface("BPIC/Example/Input").(engine.Interface)
 		iface.Title = "Input"
 
 		return node
 	})
 
-	Blackprint.RegisterInterface('BPIC/Example/Input', func(node InputSimple) interface{} {
-		value := '...';
+	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ interface{}) interface{} {
+		// node := node_.(InputSimple)
+		value := "..."
 
-		iface := InputSimpleIFace {
-			Interface: engine.Interface {
-				Data: engine.InterfaceData {
-					'value': func(val interface{}) interface{} {
-						if val == nil {
+		var iface InputSimpleIFace
+		iface = InputSimpleIFace{
+			Interface: engine.Interface{
+				Data: engine.InterfaceData{
+					"value": func(val ...interface{}) interface{} {
+						if len(val) == 0 {
 							return value
 						}
 
-						value = val
+						value = val[0].(string)
 						iface.Changed(val)
-					}
-				}
+						return nil
+					},
+				},
 			},
 		}
 
