@@ -5,5 +5,9 @@ import (
 )
 
 func (e *Engine) LoadJSONBytes(b []byte) (err error) {
-	return json.Unmarshal(b, &e.model)
+	err = json.Unmarshal(b, &e.model)
+	if err == nil {
+		return e.reload()
+	}
+	return
 }

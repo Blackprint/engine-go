@@ -1,13 +1,10 @@
 package engine
 
-type Data struct {
-	Value string `json:"value"`
-}
 type Namespace string
 
 type NodeDataValue interface{}
 type NodeData struct {
-	Value NodeDataValue
+	Value NodeDataValue `json:"value"`
 }
 
 type NodeOutputHandler struct{}
@@ -18,13 +15,13 @@ type NodeOutput struct {
 	Value   []NodeOutputHandler `json:"Value"`
 }
 type Node struct {
-	I  int64  `json:"i"`
-	ID string `json:"id"`
-	X  int64  `json:"x"`
-	Y  int64  `json:"y"`
+	Index int64  `json:"i"`
+	ID    string `json:"id"`
+	X     int64  `json:"x"`
+	Y     int64  `json:"y"`
 
 	Data   *NodeData   `json:"data"`
 	Output *NodeOutput `json:"output"`
 }
 
-type InputData map[Namespace][]Node
+type InputData map[Namespace][]*Node
