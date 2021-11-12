@@ -10,11 +10,30 @@ type Node struct {
 	Property map[string]interface{} // interface = port value
 }
 
+type INode interface {
+	SetInterface(namespace ...string) interface{}
+	Init()
+	Request(*Port, *Interface)
+	Update(Cable)
+	Imported()
+}
+type INodeInternal interface {
+	INode
+	Obj() *Node
+}
+
+type NodeHandler func(*Instance) interface{}
+type InterfaceHandler func(interface{}) interface{}
+
 // QNodeList = Private function, for internal library only
-var QNodeList map[string]func(*Instance) interface{} // interface = extends 'Node'
+var QNodeList = map[string]NodeHandler{} // interface = extends 'Node'
 
 // QInterfaceList = Private function, for internal library only
-var QInterfaceList map[string]func(interface{}) interface{}
+var QInterfaceList = map[string]InterfaceHandler{}
+
+func (n *Node) Obj() *Node {
+	return n
+}
 
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
@@ -28,7 +47,7 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 	}
 
 	iface := class(n).(Interface)
-	iface.QInitialized = true
+	iface.Obj().QInitialized = true
 	n.Iface = iface
 
 	return &iface

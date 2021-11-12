@@ -19,7 +19,32 @@ func New() Instance {
 	return Instance{}
 }
 
-type SingleInstanceJSON map[string]interface{}
+//
+type Data struct {
+	Value string `json:"value"`
+}
+type Namespace string
+type NodeData struct {
+	Data Data `json:"data,omitempty"`
+}
+type NodeOutput struct {
+	Output []Node `json:"output"`
+}
+type NodeX struct {
+	Name string  `json:"name"`
+	I    *int64  `json:"i,omitempty"`
+	ID   *string `json:"id,omitempty"`
+	X    *int64  `json:"x,omitempty"`
+	Y    *int64  `json:"y,omitempty"`
+
+	NodeData
+	NodeOutput
+}
+type DataStructure map[Namespace][]NodeX
+
+//
+
+type SingleInstanceJSON map[string]nodeList
 type metaValue map[string]string
 type nodeList []nodeConfig
 type nodeConfig struct {
@@ -52,7 +77,7 @@ func (instance *Instance) ImportJSON(str []byte) {
 			continue
 		}
 
-		list := ifaces.(nodeList)
+		list := ifaces //.(nodeList)
 
 		// Every ifaces that using this namespace name
 		for _, iface := range list {
@@ -63,7 +88,7 @@ func (instance *Instance) ImportJSON(str []byte) {
 	// Create cable only from output and property
 	// > Important to be separated from above, so the cable can reference to loaded ifaces
 	for _, ifaces := range data {
-		list := ifaces.(nodeList)
+		list := ifaces //.(nodeList)
 
 		for _, iface := range list {
 			current := ifaceList[iface.I].(Interface)
@@ -146,8 +171,8 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
 	}
 
-	node := func_(instance).(Node) // from registerNode(namespace, func_)
-	iface := node.Iface.(Interface)
+	node := func_(instance).(INodeInternal) // from registerNode(namespace, func_)
+	iface := node.Obj().Iface.(Interface)
 
 	if !iface.QInitialized {
 		panic("Node interface was not found, do you forget to call node->setInterface() ?")
@@ -176,13 +201,13 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	instance.IfaceList[options.I] = iface
 
 	iface.Importing = false
-	node.Imported()
+	node.Obj().Imported()
 
 	if nodes != nil {
 		nodes = append(nodes, node)
 	}
 
-	node.Init()
+	node.Obj().Init()
 	iface.Init()
 
 	return iface, nodes
