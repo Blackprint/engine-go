@@ -7,7 +7,8 @@ type NodeData struct {
 	Value NodeDataValue `json:"value"`
 }
 
-type NodeOutputHandler struct{}
+type NodeOutputHandler struct {
+}
 type NodeOutput struct {
 	Clicked []NodeOutputHandler `json:"Clicked"`
 	Out     []NodeOutputHandler `json:"Out"`
@@ -25,3 +26,9 @@ type Node struct {
 }
 
 type InputData map[Namespace][]*Node
+
+//
+
+func (n *Node) Connect(to *Node) (err error) {
+	return
+}
