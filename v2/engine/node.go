@@ -29,6 +29,17 @@ type InputData map[Namespace][]*Node
 
 //
 
-func (n *Node) Connect(to *Node) (err error) {
+type INode interface {
+	Init() (err error)
+	Connect(to INode) (err error)
+}
+
+//
+
+func (n *Node) Init() (err error) {
+	return
+}
+
+func (n *Node) Connect(to INode) (err error) {
 	return
 }
