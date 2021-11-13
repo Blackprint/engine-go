@@ -2,8 +2,10 @@ package example
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strconv"
+	"time"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -30,7 +32,7 @@ func (node *MathMultiple) Multiply() int {
 
 // When any output value from other node are updated
 // Let's immediately change current node result
-func (node *MathMultiple) Update(cable engine.Cable) {
+func (node *MathMultiple) Update(cable *engine.Cable) {
 	node.Output["Result"](node.Multiply())
 }
 
@@ -97,7 +99,7 @@ func (node *MathRandom) Request(port *engine.Port, iface_ interface{}) bool {
 	fmt.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
 
 	// Let's create the value for him
-	node.Input["Re-seed"]()
+	node.Input["Re-seed"]().(func(...interface{}))()
 
 	return true
 }
@@ -114,7 +116,8 @@ func RegisterMathRandom() {
 				TInput: engine.NodePort{
 					"Re-seed": port.Trigger(func(...interface{}) {
 						node.Executed = true
-						node.Output["Out"]( /*random*/ )
+						rand.Seed(time.Now().UnixNano())
+						node.Output["Out"](rand.Intn(100))
 					}),
 				},
 

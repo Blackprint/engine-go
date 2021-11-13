@@ -65,7 +65,7 @@ func (iface *LoggerIFace) Log(val ...interface{}) interface{} {
 	}
 
 	iface.log = val[0].(string)
-	fmt.Printf("\x1b[1m\x1b[33mLogger:\x1b[0m \x1b[33mLogger Data => %s\x1b[0m\n", val)
+	fmt.Printf("\x1b[1m\x1b[33mLogger:\x1b[0m \x1b[33mLogger Data => %s\x1b[0m\n", iface.log)
 	return nil
 }
 

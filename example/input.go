@@ -85,7 +85,7 @@ func RegisterInputSimple() {
 						}
 
 						value = val[0].(string)
-						iface.Changed(val)
+						iface.Changed(value)
 						return nil
 					},
 				},
