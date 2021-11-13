@@ -80,6 +80,10 @@ func RegisterInputSimple() {
 							return value
 						}
 
+						if iface.Importing {
+							return nil
+						}
+
 						value = val[0].(string)
 						iface.Changed(val)
 						return nil

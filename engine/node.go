@@ -32,7 +32,7 @@ var QInterfaceList = map[string]InterfaceHandler{}
 // This will return *pointer
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
-		iface := &Interface{QInitialized: true}
+		iface := &Interface{QInitialized: true, Importing: true}
 
 		n.Iface = iface
 		n.customEvent = &customEvent{}
@@ -51,6 +51,7 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 	}
 
 	utils.SetProperty(iface, "QInitialized", true)
+	utils.SetProperty(iface, "Importing", true)
 	n.Iface = iface
 	n.customEvent = &customEvent{}
 
