@@ -20,6 +20,10 @@ func GetProperty(obj interface{}, key string) interface{} {
 	return reflect.ValueOf(obj).Elem().FieldByName(key).Interface()
 }
 
+func GetPropertyRef(obj interface{}, key string) interface{} {
+	return reflect.ValueOf(obj).Elem().FieldByName(key).Addr().Interface()
+}
+
 // obj must be a pointer
 func GetFunction(obj interface{}, key string) interface{} {
 	return reflect.ValueOf(obj).MethodByName(key).Interface()
@@ -28,6 +32,11 @@ func GetFunction(obj interface{}, key string) interface{} {
 // obj must be a pointer
 func CallFunction(obj interface{}, key string, val *[]reflect.Value) interface{} {
 	return reflect.ValueOf(obj).MethodByName(key).Call(*val)
+}
+
+// obj must be a pointer
+func CallFieldFunction(obj interface{}, key string, val *[]reflect.Value) interface{} {
+	return reflect.ValueOf(obj).Elem().FieldByName(key).Elem().Call(*val)
 }
 
 // obj must be a pointer

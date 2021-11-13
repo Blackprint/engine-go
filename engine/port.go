@@ -1,18 +1,18 @@
 package engine
 
 import (
-	"log"
 	"reflect"
 
 	portTypes "github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
+	"github.com/blackprint/engine-go/utils"
 )
 
 type Port struct {
 	customEvent
 	Name    string
 	Type    reflect.Kind
-	Cables  []Cable
+	Cables  []*Cable
 	Source  int
 	Iface   *Interface
 	Default interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
@@ -34,8 +34,14 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						target = cable.Owner
 					}
 
-					log.Println(cable)
-					target.Func(data)
+					args := []reflect.Value{}
+
+					for _, v := range data {
+						args = append(args, reflect.ValueOf(v))
+					}
+
+					// fmt.Println(cable.String() + " (args: " + strconv.Itoa(len(args)) + ")")
+					utils.CallFieldFunction(target, "Default", &args)
 				}
 
 				return nil
@@ -78,9 +84,12 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						target = temp.Owner
 					}
 
-					target.Iface.Node.(*Node).Request(target, port.Iface)
+					utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
+						reflect.ValueOf(target),
+						reflect.ValueOf(port.Iface),
+					})
 
-					log.Printf("1. %s -> %s (%s)", port.Name, target.Name, target.Value)
+					// fmt.Printf("1. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
 
 					port.Iface.QRequesting = false
 
@@ -106,8 +115,12 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						target = cable.Owner
 					}
 
-					target.Iface.Node.(*Node).Request(target, port.Iface)
-					log.Printf("2. %s -> %s (%s)", port.Name, target.Name, target.Value)
+					utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
+						reflect.ValueOf(target),
+						reflect.ValueOf(port.Iface),
+					})
+
+					// fmt.Printf("2. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
 
 					if target.Value == nil {
 						data = append(data, target.Default)
@@ -150,7 +163,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 		// ToDo: do we need feature validation here?
 
 		_val := val[0]
-		log.Printf("3. %s = %s", port.Name, _val)
+		// fmt.Printf("3. %s = %s\n", port.Name, _val)
 
 		port.Value = _val
 		port.QTrigger("value", port)
@@ -170,7 +183,9 @@ func (port *Port) sync() {
 		}
 
 		if target.Iface.QRequesting == false {
-			target.Iface.Node.(*Node).Update(cable)
+			utils.CallFunction(target.Iface.Node, "Update", &[]reflect.Value{
+				reflect.ValueOf(cable),
+			})
 		}
 
 		target.QTrigger("value", port)

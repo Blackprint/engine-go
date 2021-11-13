@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/blackprint/engine-go/utils"
 )
@@ -94,35 +93,45 @@ func (instance *Instance) ImportJSON(str []byte) {
 		list := ifaces //.(nodeList)
 
 		for _, iface := range list {
-			current := ifaceList[iface.I].(Interface)
+			current := ifaceList[iface.I]
 
 			// If have output connection
 			out := iface.Output
 			if out != nil {
+				Output := *utils.GetPropertyRef(current, "Output").(*map[string]*Port)
+
 				// Every output port that have connection
 				for portName, ports := range out {
-					linkPortA := current.Output[portName]
+					linkPortA := Output[portName]
+
 					if linkPortA == nil {
 						panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", iface.I, portName))
 					}
 
 					// Current output's available targets
 					for _, target := range ports {
-						targetNode := ifaceList[target.I].(Interface)
-						linkPortB := current.Input[target.Name]
+						targetNode := ifaceList[target.I]
+
+						Input := *utils.GetPropertyRef(targetNode, "Input").(*map[string]*Port)
+						linkPortB := Input[target.Name]
 
 						if linkPortB == nil {
-							panic(fmt.Sprintf("Node port not found for %s with name: %s", targetNode.Title, target.Name))
+							targetTitle := utils.GetProperty(targetNode, "Title").(string)
+							panic(fmt.Sprintf("Node port not found for %s with name: %s", targetTitle, target.Name))
 						}
 
-						log.Printf("%s.%s => %s.%s", current.Title, linkPortA.Name, targetNode.Title, linkPortB.Name)
+						// For Debugging ->
+						// Title := utils.GetProperty(current, "Title").(string)
+						// targetTitle := utils.GetProperty(targetNode, "Title").(string)
+						// fmt.Printf("%s.%s => %s.%s\n", Title, linkPortA.Name, targetTitle, linkPortB.Name)
+						// <- For Debugging
 
 						cable := NewCable(linkPortA, linkPortB)
-						linkPortA.Cables = append(linkPortA.Cables, cable)
-						linkPortB.Cables = append(linkPortB.Cables, cable)
+						linkPortA.Cables = append(linkPortA.Cables, &cable)
+						linkPortB.Cables = append(linkPortB.Cables, &cable)
 
 						cable.QConnected()
-						log.Println(cable)
+						// fmt.Println(cable.String())
 					}
 				}
 			}
@@ -131,7 +140,7 @@ func (instance *Instance) ImportJSON(str []byte) {
 
 	// Call nodes init after creation processes was finished
 	for _, val := range nodes {
-		val.(*Node).Init()
+		utils.CallFunction(val, "Init", utils.EmptyArgs)
 	}
 }
 
@@ -191,7 +200,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	// Assign the saved options if exist
 	// Must be called here to avoid port trigger
 	if options.Data != nil {
-		data := utils.GetProperty(iface, "Data").(InterfaceData)
+		data := utils.GetPropertyRef(iface, "Data").(*InterfaceData)
 		if data != nil {
 			deepMerge(data, options.Data.(map[string]interface{}))
 		}
@@ -224,7 +233,8 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 }
 
 // Currently only one level
-func deepMerge(real InterfaceData, merge map[string]interface{}) {
+func deepMerge(real_ *InterfaceData, merge map[string]interface{}) {
+	real := *real_
 	for key, val := range merge {
 		real[key](val)
 	}

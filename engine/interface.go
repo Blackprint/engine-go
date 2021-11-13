@@ -44,7 +44,7 @@ func (iface *Interface) QPrepare() {
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]
-		port := utils.GetProperty(node, "T"+which).(map[string]interface{}) // get value by property name
+		port := *utils.GetPropertyRef(node, "T"+which).(*map[string]interface{}) // get value by property name
 
 		if port == nil {
 			continue
