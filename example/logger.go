@@ -81,15 +81,15 @@ func RegisterLogger() {
 			},
 		}
 
-		iface := node.SetInterface("BPIC/Example/Display/Logger").(LoggerIFace)
+		iface := node.SetInterface("BPIC/Example/Display/Logger").(*LoggerIFace)
 		iface.Title = "Logger"
 
-		return node
+		return &node
 	})
 
 	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ interface{}) interface{} {
 		// node := node_.(LoggerNode)
-		return LoggerIFace{
+		return &LoggerIFace{
 			Interface: engine.Interface{},
 		}
 	})

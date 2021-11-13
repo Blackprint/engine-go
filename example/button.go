@@ -41,15 +41,15 @@ func RegisterButtonSimple() {
 			},
 		}
 
-		iface := node.SetInterface("BPIC/Example/Button").(engine.Interface)
+		iface := node.SetInterface("BPIC/Example/Button").(*ButtonSimpleIFace)
 		iface.Title = "Button"
 
-		return node
+		return &node
 	})
 
 	Blackprint.RegisterInterface("BPIC/Example/Button", func(node interface{}) interface{} {
 		// node_ := node.(ButtonSimple)
-		return ButtonSimpleIFace{
+		return &ButtonSimpleIFace{
 			Interface: engine.Interface{},
 		}
 	})

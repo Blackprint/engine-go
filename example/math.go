@@ -58,7 +58,7 @@ func RegisterMathMultiply() {
 			},
 		}
 
-		iface := node.SetInterface().(engine.Interface) // default interface
+		iface := node.SetInterface().(*engine.Interface) // default interface
 		iface.Title = "Multiply"
 
 		node.On("cable.connect", func(event interface{}) {
@@ -116,9 +116,9 @@ func RegisterMathRandom() {
 			},
 		}
 
-		iface := node.SetInterface().(engine.Interface) // default interface
+		iface := node.SetInterface().(*engine.Interface) // default interface
 		iface.Title = "Random"
 
-		return node
+		return &node
 	})
 }

@@ -61,10 +61,10 @@ func RegisterInputSimple() {
 			},
 		}
 
-		iface := node.SetInterface("BPIC/Example/Input").(engine.Interface)
+		iface := node.SetInterface("BPIC/Example/Input").(*InputSimpleIFace)
 		iface.Title = "Input"
 
-		return node
+		return &node
 	})
 
 	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ interface{}) interface{} {
@@ -88,6 +88,6 @@ func RegisterInputSimple() {
 			},
 		}
 
-		return iface
+		return &iface
 	})
 }
