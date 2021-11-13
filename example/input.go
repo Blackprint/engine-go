@@ -80,12 +80,12 @@ func RegisterInputSimple() {
 							return value
 						}
 
-						if iface.Importing {
-							return nil
+						value = val[0].(string)
+
+						if iface.Importing == false {
+							iface.Changed(value)
 						}
 
-						value = val[0].(string)
-						iface.Changed(value)
 						return nil
 					},
 				},
