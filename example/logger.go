@@ -1,6 +1,7 @@
 package example
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -34,8 +35,8 @@ func (iface *LoggerIFace) Init() {
 			if types == reflect.String || types == reflect.Int64 || types == reflect.Float64 {
 				iface.Log(val)
 			} else {
-				// val = json_encode(val);
-				iface.Log(val) // ToDo, convert any object to JSON string
+				byte_, _ := json.Marshal(val)
+				iface.Log(string(byte_)) // ToDo, convert any object to JSON string
 			}
 		}
 	}
