@@ -2,6 +2,8 @@ package engine
 
 import (
 	"reflect"
+
+	"github.com/blackprint/engine-go/port"
 )
 
 type Cable struct {
@@ -38,7 +40,7 @@ func (c *Cable) QConnected() {
 	})
 
 	var inp, out *Port
-	if c.Owner.Source == "input" {
+	if c.Owner.Source == port.Input {
 		inp = c.Target
 		out = c.Owner
 	} else {

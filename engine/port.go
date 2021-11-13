@@ -13,7 +13,7 @@ type Port struct {
 	Name    string
 	Type    reflect.Kind
 	Cables  []Cable
-	Source  string
+	Source  int
 	Iface   *Interface
 	Default interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Value   interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
@@ -24,7 +24,7 @@ type Port struct {
 
 func (port *Port) CreateLinker() portTypes.GetterSetter {
 	if port.Type == types.Function {
-		if port.Source == "output" {
+		if port.Source == portTypes.Output {
 			return func(data ...interface{}) interface{} {
 				var target *Port
 				for _, cable := range port.Cables {
@@ -51,7 +51,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 		// Getter value
 		if len(val) == 0 {
 			// This port must use values from connected output
-			if port.Source == "input" {
+			if port.Source == portTypes.Input {
 				cableLen := len(port.Cables)
 				if cableLen == 0 {
 					if port.Feature == portTypes.TypeArrayOf {
@@ -143,7 +143,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 		}
 		// else setter (only for output port)
 
-		if port.Source != "input" {
+		if port.Source == portTypes.Input {
 			panic("Can't set data to input port")
 		}
 

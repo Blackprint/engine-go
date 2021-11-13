@@ -5,6 +5,12 @@ import (
 )
 
 const (
+	Input = iota
+	Output
+	Property
+)
+
+const (
 	TypeArrayOf = iota
 	TypeDefault
 	TypeSwitch

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"reflect"
 
 	portType "github.com/blackprint/engine-go/port"
@@ -42,11 +41,6 @@ func (iface *Interface) QPrepare() {
 	iface.customEvent = &customEvent{}
 
 	node := iface.Node
-	fmt.Println(iface.Namespace)
-
-	if node == nil {
-		panic("Nani!?")
-	}
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]
@@ -63,7 +57,6 @@ func (iface *Interface) QPrepare() {
 
 		// name: string, config: PortFeature
 		for name, config_ := range port {
-			fmt.Println(name)
 			var config portType.PortFeature
 			var type_ reflect.Kind
 			var feature int
@@ -102,11 +95,20 @@ func (iface *Interface) QPrepare() {
 				}
 			}
 
+			var source int
+			if which == "Input" {
+				source = portType.Input
+			} else if which == "Output" {
+				source = portType.Output
+			} else if which == "Property" {
+				source = portType.Property
+			}
+
 			linkedPort := Port{
 				Name:    name,
 				Type:    type_,
 				Default: def,
-				Source:  which,
+				Source:  source,
 				Iface:   iface,
 				Feature: feature,
 			}
