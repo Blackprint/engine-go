@@ -5,13 +5,18 @@ import (
 )
 
 type Node struct {
-	customEvent
+	*customEvent
 	Instance *Instance
 	Iface    interface{}
 
-	Output   map[string]interface{} // interface = port value
-	Input    map[string]interface{} // interface = port value
-	Property map[string]interface{} // interface = port value
+	// Port Template
+	TOutput   map[string]interface{} // interface = port value
+	TInput    map[string]interface{} // interface = port value
+	TProperty map[string]interface{} // interface = port value
+
+	Output   map[string]GetterSetter
+	Input    map[string]GetterSetter
+	Property map[string]GetterSetter
 }
 
 type NodeHandler func(*Instance) interface{}        // interface = extends *engine.Node
@@ -26,7 +31,8 @@ var QInterfaceList = map[string]InterfaceHandler{}
 // This will return *pointer
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
-		iface := &Interface{QInitialized: true}
+		iface := &Interface{QInitialized: true, Node: n}
+
 		n.Iface = iface
 		return iface
 	}

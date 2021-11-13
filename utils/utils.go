@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-var EmptyArgs = []reflect.Value{}
+var EmptyArgs = &[]reflect.Value{}
 
 func IsPointer(obj interface{}) bool {
 	return reflect.ValueOf(obj).Kind() == reflect.Ptr
@@ -26,8 +26,8 @@ func GetFunction(obj interface{}, key string) interface{} {
 }
 
 // obj must be a pointer
-func CallFunction(obj interface{}, key string, val []reflect.Value) interface{} {
-	return reflect.ValueOf(obj).MethodByName(key).Call(val)
+func CallFunction(obj interface{}, key string, val *[]reflect.Value) interface{} {
+	return reflect.ValueOf(obj).MethodByName(key).Call(*val)
 }
 
 // obj must be a pointer

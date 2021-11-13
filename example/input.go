@@ -25,7 +25,7 @@ func (node InputSimple) Imported() {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m", val)
 	}
 
-	node.Output["Value"].(engine.GetterSetter)(val)
+	node.Output["Value"](val)
 }
 
 type InputSimpleIFace struct {
@@ -41,10 +41,10 @@ func (iface InputSimpleIFace) Changed(val interface{}) {
 	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m", val)
 
 	node := iface.Node.(engine.Node)
-	node.Output["Value"].(engine.GetterSetter)(val)
+	node.Output["Value"](val)
 
 	// This will call every connected node
-	node.Output["Changed"].(engine.GetterSetter)()
+	node.Output["Changed"]()
 }
 
 func RegisterInputSimple() {
@@ -53,8 +53,8 @@ func RegisterInputSimple() {
 			Node: engine.Node{
 				Instance: instance,
 
-				// Node's Output Port
-				Output: engine.NodePort{
+				// Node's Output Port Template
+				TOutput: engine.NodePort{
 					"Changed": types.Function,
 					"Value":   types.String,
 				},

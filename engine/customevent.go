@@ -10,10 +10,14 @@ type eventObj struct {
 }
 
 type customEvent struct {
-	events map[string][]eventObj
+	events map[string][]*eventObj
 }
 
 func (e *customEvent) listen(evName string, callback interface{}, once bool) {
+	if e.events == nil {
+		e.events = map[string][]*eventObj{}
+	}
+
 	evs := strings.Split(evName, ",")
 
 	for _, name := range evs {
@@ -32,7 +36,7 @@ func (e *customEvent) listen(evName string, callback interface{}, once bool) {
 			break
 		}
 
-		e.events[name] = append(list, eventObj{
+		e.events[name] = append(list, &eventObj{
 			callback: callback,
 			once:     once,
 		})
@@ -48,11 +52,14 @@ func (e *customEvent) Once(evName string, callback interface{}) {
 }
 
 func (e *customEvent) Off(evName string, callback interface{}) {
-	evs := strings.Split(evName, ",")
+	if e.events == nil {
+		return
+	}
 
+	evs := strings.Split(evName, ",")
 	for _, name := range evs {
 		if callback == nil {
-			e.events[name] = []eventObj{}
+			e.events[name] = []*eventObj{}
 			break
 		}
 

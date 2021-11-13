@@ -16,10 +16,10 @@ func RegisterButton() {
 
 // ============
 type ButtonSimple struct {
-	engine.Node
+	*engine.Node
 }
 type ButtonSimpleIFace struct {
-	engine.Interface
+	*engine.Interface
 }
 
 func (iface ButtonSimpleIFace) Clicked(ev interface{}) {
@@ -31,11 +31,11 @@ func (iface ButtonSimpleIFace) Clicked(ev interface{}) {
 func RegisterButtonSimple() {
 	Blackprint.RegisterNode("Example/Button/Simple", func(instance *engine.Instance) interface{} {
 		node := ButtonSimple{
-			Node: engine.Node{
+			Node: &engine.Node{
 				Instance: instance,
 
-				// Node's Output Port
-				Output: engine.NodePort{
+				// Node's Output Port Template
+				TOutput: engine.NodePort{
 					"Clicked": types.Function,
 				},
 			},
@@ -50,7 +50,7 @@ func RegisterButtonSimple() {
 	Blackprint.RegisterInterface("BPIC/Example/Button", func(node interface{}) interface{} {
 		// node_ := node.(ButtonSimple)
 		return &ButtonSimpleIFace{
-			Interface: engine.Interface{},
+			Interface: &engine.Interface{},
 		}
 	})
 }

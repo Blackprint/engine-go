@@ -23,26 +23,26 @@ type MathMultiple struct {
 // Your own processing mechanism
 func (node *MathMultiple) Multiply() int {
 	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m", node.Input["A"], node.Input["B"])
-	return node.Input["A"].(int) * node.Input["B"].(int)
+	return node.Input["A"]().(int) * node.Input["B"]().(int)
 }
 
 // When any output value from other node are updated
 // Let's immediately change current node result
 func (node *MathMultiple) Update(cable engine.Cable) {
-	node.Output["Result"].(func(interface{}))(node.Multiply())
+	node.Output["Result"](node.Multiply())
 }
 
 func RegisterMathMultiply() {
-	Blackprint.RegisterNode("Example/Math/Random", func(instance *engine.Instance) interface{} {
+	Blackprint.RegisterNode("Example/Math/Multiply", func(instance *engine.Instance) interface{} {
 		var node MathMultiple
 		node = MathMultiple{
 			Node: engine.Node{
 				Instance: instance,
 
-				// Node's Input Port
-				Input: engine.NodePort{
+				// Node's Input Port Template
+				TInput: engine.NodePort{
 					"Exec": port.Trigger(func() {
-						node.Output["Result"].(engine.GetterSetter)(node.Multiply())
+						node.Output["Result"](node.Multiply())
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val interface{}) interface{} {
@@ -51,8 +51,8 @@ func RegisterMathMultiply() {
 					}),
 				},
 
-				// Node's Output Port
-				Output: engine.NodePort{
+				// Node's Output Port Template
+				TOutput: engine.NodePort{
 					"Result": types.Int,
 				},
 			},
@@ -66,7 +66,7 @@ func RegisterMathMultiply() {
 			log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
 		})
 
-		return node
+		return &node
 	})
 }
 
@@ -88,7 +88,7 @@ func (node *MathRandom) Request(port engine.Port, iface_ interface{}) bool {
 	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m", port.Name, iface.Title)
 
 	// Let's create the value for him
-	node.Input["Re-seed"].(engine.GetterSetter)()
+	node.Input["Re-seed"]()
 
 	return true
 }
@@ -101,16 +101,16 @@ func RegisterMathRandom() {
 			Node: engine.Node{
 				Instance: instance,
 
-				// Node's Input Port
-				Input: engine.NodePort{
+				// Node's Input Port Template
+				TInput: engine.NodePort{
 					"Re-seed": port.Trigger(func() {
 						node.Executed = true
-						node.Output["Out"].(engine.GetterSetter)( /*random*/ )
+						node.Output["Out"]( /*random*/ )
 					}),
 				},
 
-				// Node's Output Port
-				Output: engine.NodePort{
+				// Node's Output Port Template
+				TOutput: engine.NodePort{
 					"Out": types.Int,
 				},
 			},
