@@ -72,7 +72,6 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 				}
 
 				// Flag current iface is requesting value to other iface
-				port.Iface.QRequesting = true
 
 				// Return single data
 				if cableLen == 1 {
@@ -85,14 +84,16 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						target = temp.Owner
 					}
 
-					utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
-						reflect.ValueOf(target),
-						reflect.ValueOf(port.Iface),
-					})
+					if target.Value == nil {
+						port.Iface.QRequesting = true
+						utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
+							reflect.ValueOf(target),
+							reflect.ValueOf(port.Iface),
+						})
+						port.Iface.QRequesting = false
+					}
 
 					// fmt.Printf("1. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
-
-					port.Iface.QRequesting = false
 
 					if port.Feature == portTypes.TypeArrayOf {
 						var tempVal interface{}
@@ -122,10 +123,14 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						target = cable.Owner
 					}
 
-					utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
-						reflect.ValueOf(target),
-						reflect.ValueOf(port.Iface),
-					})
+					if target.Value == nil {
+						port.Iface.QRequesting = true
+						utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
+							reflect.ValueOf(target),
+							reflect.ValueOf(port.Iface),
+						})
+						port.Iface.QRequesting = false
+					}
 
 					// fmt.Printf("2. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
 
@@ -136,7 +141,6 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 					}
 				}
 
-				port.Iface.QRequesting = false
 				if port.Feature != portTypes.TypeArrayOf {
 					return data[0]
 				}
