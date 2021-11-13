@@ -18,7 +18,11 @@ type Instance struct {
 }
 
 func New() *Instance {
-	return &Instance{}
+	return &Instance{
+		Iface:     map[string]interface{}{},
+		IfaceList: map[int]interface{}{},
+		settings:  map[string]bool{},
+	}
 }
 
 //
@@ -194,10 +198,11 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		}
 	}
 
+	utils.SetProperty(iface, "Namespace", namespace)
+
 	// Create the linker between the nodes and the iface
 	utils.CallFunction(iface, "QPrepare", utils.EmptyArgs)
 
-	utils.SetProperty(iface, "Namespace", namespace)
 	if options.Id != "" {
 		utils.SetProperty(iface, "Id", options.Id)
 		instance.Iface[options.Id] = iface
