@@ -59,6 +59,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 			// This port must use values from connected output
 			if port.Source == portTypes.Input {
 				cableLen := len(port.Cables)
+
 				if cableLen == 0 {
 					if port.Feature == portTypes.TypeArrayOf {
 						// ToDo: fix type to follow
@@ -102,6 +103,12 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						}
 
 						return [](interface{}){tempVal}
+					}
+
+					if target.Value == nil {
+						return target.Default
+					} else {
+						return target.Value
 					}
 				}
 
