@@ -64,7 +64,7 @@ func Switch(type_ reflect.Kind) PortFeature {
 /* This port will be used as a trigger or callable input port
  * func = callback when the port was being called as a function
  */
-func Trigger(callback interface{}) PortFeature {
+func Trigger(callback func(...interface{})) PortFeature {
 	return PortFeature{
 		Feature: TypeTrigger,
 		Func:    callback,
@@ -85,7 +85,7 @@ func Union(types []reflect.Kind) PortFeature {
  * then you can write custom data validation in the function
  * the value returned by your function will be used as the input value
  */
-func Validator(type_ reflect.Kind, callback interface{}) PortFeature {
+func Validator(type_ reflect.Kind, callback func(interface{}) interface{}) PortFeature {
 	return PortFeature{
 		Feature: TypeValidator,
 		Type:    type_,

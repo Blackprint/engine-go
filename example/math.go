@@ -1,7 +1,7 @@
 package example
 
 import (
-	"log"
+	"fmt"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -22,7 +22,7 @@ type MathMultiple struct {
 
 // Your own processing mechanism
 func (node *MathMultiple) Multiply() int {
-	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m", node.Input["A"]().(int), node.Input["B"]().(int))
+	fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"]().(int), node.Input["B"]().(int))
 	return node.Input["A"]().(int) * node.Input["B"]().(int)
 }
 
@@ -41,12 +41,12 @@ func RegisterMathMultiply() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePort{
-					"Exec": port.Trigger(func() {
+					"Exec": port.Trigger(func(...interface{}) {
 						node.Output["Result"](node.Multiply())
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val interface{}) interface{} {
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m", node.Iface.(engine.Interface).Title, val)
+						fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.Interface).Title, val)
 						return val // ToDo: convert string to number
 					}),
 				},
@@ -63,7 +63,7 @@ func RegisterMathMultiply() {
 
 		node.On("cable.connect", func(event interface{}) {
 			ev := event.(engine.CableEvent)
-			log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
+			fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
 		})
 
 		return &node
@@ -77,15 +77,15 @@ type MathRandom struct {
 }
 
 // When the connected node is requesting for the output value
-func (node *MathRandom) Request(port engine.Port, iface_ interface{}) bool {
+func (node *MathRandom) Request(port *engine.Port, iface_ interface{}) bool {
 	// Only run once this node never been executed
 	// Return false if no value was changed
 	if node.Executed == true {
 		return false
 	}
 
-	iface := iface_.(engine.Interface)
-	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m", port.Name, iface.Title)
+	iface := iface_.(*engine.Interface)
+	fmt.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
 
 	// Let's create the value for him
 	node.Input["Re-seed"]()
@@ -103,7 +103,7 @@ func RegisterMathRandom() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePort{
-					"Re-seed": port.Trigger(func() {
+					"Re-seed": port.Trigger(func(...interface{}) {
 						node.Executed = true
 						node.Output["Out"]( /*random*/ )
 					}),

@@ -55,5 +55,5 @@ func (c *Cable) QConnected() {
 
 // For debugging
 func (c *Cable) String() string {
-	return "\nCable: " + c.Owner.Iface.Title + "." + c.Owner.Name + " . " + c.Target.Name + "." + c.Target.Iface.Title
+	return "\nCable: " + c.Owner.Iface.Title + "." + c.Owner.Name + " <=> " + c.Target.Name + "." + c.Target.Iface.Title
 }
