@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	Input = iota
+	Input = iota + 1
 	Output
 	Property
 )
 
 const (
-	TypeArrayOf = iota
+	TypeArrayOf = iota + 1
 	TypeDefault
 	TypeSwitch
 	TypeTrigger
