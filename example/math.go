@@ -2,6 +2,8 @@ package example
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -47,7 +49,14 @@ func RegisterMathMultiply() {
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val interface{}) interface{} {
 						fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.Interface).Title, val)
-						return val // ToDo: convert string to number
+
+						// Convert string to number
+						if reflect.ValueOf(val).Kind() == reflect.String {
+							num, _ := strconv.Atoi(val.(string))
+							return num
+						}
+
+						return val
 					}),
 				},
 
