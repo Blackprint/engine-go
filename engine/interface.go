@@ -11,7 +11,7 @@ import (
 
 var portList = [3]string{"Input", "Output", "Property"}
 
-type InterfaceData map[string]interface{}
+type InterfaceData map[string]portType.GetterSetter
 type Interface struct {
 	*customEvent
 	QInitialized bool // for internal library only

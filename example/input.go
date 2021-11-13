@@ -5,7 +5,6 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 )
 
@@ -21,7 +20,7 @@ type InputSimple struct {
 
 // Bring value from imported iface to node output
 func (node *InputSimple) Imported() {
-	val := node.Iface.(*InputSimpleIFace).Data["value"].(port.GetterSetter)()
+	val := node.Iface.(*InputSimpleIFace).Data["value"]()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m", val)
 	}

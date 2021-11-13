@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/utils"
 )
 
@@ -195,9 +193,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	if options.Data != nil {
 		data := utils.GetProperty(iface, "Data").(InterfaceData)
 		if data != nil {
-			deepMerge(data, options.Data.(InterfaceData))
-		} else {
-			utils.SetProperty(iface, "Data", options.Data.(InterfaceData))
+			deepMerge(data, options.Data.(map[string]interface{}))
 		}
 	}
 
@@ -227,13 +223,9 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	return iface, nodes
 }
 
-func deepMerge(real InterfaceData, merge InterfaceData) {
+// Currently only one level
+func deepMerge(real InterfaceData, merge map[string]interface{}) {
 	for key, val := range merge {
-		if reflect.TypeOf(val).Kind() == reflect.Map {
-			deepMerge(real[key].(InterfaceData), val.(InterfaceData))
-			continue
-		}
-
-		real[key].(port.GetterSetter)(val)
+		real[key](val)
 	}
 }
