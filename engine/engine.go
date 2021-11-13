@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+
+	"github.com/blackprint/engine-go/utils"
 )
 
 type NodePort map[string]interface{}
@@ -15,8 +17,8 @@ type Instance struct {
 	settings  map[string]bool
 }
 
-func New() Instance {
-	return Instance{}
+func New() *Instance {
+	return &Instance{}
 }
 
 //
@@ -34,8 +36,6 @@ type NodeX struct {
 	Name string  `json:"name"`
 	I    *int64  `json:"i,omitempty"`
 	ID   *string `json:"id,omitempty"`
-	X    *int64  `json:"x,omitempty"`
-	Y    *int64  `json:"y,omitempty"`
 
 	NodeData
 	NodeOutput
@@ -171,44 +171,50 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
 	}
 
-	node := func_(instance).(INodeInternal) // from registerNode(namespace, func_)
-	iface := node.Obj().Iface.(Interface)
+	// *node: extends engine.Node
+	node := func_(instance) // func_ from registerNode(namespace, func_)
+	if utils.IsPointer(node) == false {
+		panic(namespace + ": .registerNode() must return pointer")
+	}
 
-	if !iface.QInitialized {
-		panic("Node interface was not found, do you forget to call node->setInterface() ?")
+	// *iface: extends engine.Interface
+	iface := utils.GetProperty(node, "Iface")
+	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
+		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
 	}
 
 	// Assign the saved options if exist
 	// Must be called here to avoid port trigger
 	if options.Data != nil {
-		if iface.Data != nil {
-			deepMerge(iface.Data, options.Data.(InterfaceData))
+		data := utils.GetProperty(iface, "Data").(InterfaceData)
+		if data != nil {
+			deepMerge(data, options.Data.(InterfaceData))
 		} else {
-			iface.Data = options.Data.(InterfaceData)
+			utils.SetProperty(iface, "Data", options.Data.(InterfaceData))
 		}
 	}
 
 	// Create the linker between the nodes and the iface
-	iface.QPrepare()
+	utils.CallFunction(iface, "QPrepare", utils.EmptyArgs)
 
-	iface.Namespace = namespace
+	utils.SetProperty(iface, "Namespace", namespace)
 	if options.Id != "" {
-		iface.Id = options.Id
+		utils.SetProperty(iface, "Id", options.Id)
 		instance.Iface[options.Id] = iface
 	}
 
-	iface.I = options.I
+	utils.SetProperty(iface, "I", options.I)
 	instance.IfaceList[options.I] = iface
 
-	iface.Importing = false
-	node.Obj().Imported()
+	utils.SetProperty(iface, "Importing", false)
+	utils.CallFunction(node, "Imported", utils.EmptyArgs)
 
 	if nodes != nil {
 		nodes = append(nodes, node)
 	}
 
-	node.Obj().Init()
-	iface.Init()
+	utils.CallFunction(node, "Init", utils.EmptyArgs)
+	utils.CallFunction(iface, "Init", utils.EmptyArgs)
 
 	return iface, nodes
 }
