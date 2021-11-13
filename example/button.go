@@ -5,7 +5,6 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 )
 
@@ -22,10 +21,10 @@ type ButtonSimpleIFace struct {
 	*engine.Interface
 }
 
-func (iface ButtonSimpleIFace) Clicked(ev interface{}) {
+func (iface *ButtonSimpleIFace) Clicked(ev interface{}) {
 	log.Printf("\x1b[1m\x1b[33mButton\\Simple:\x1b[0m \x1b[33mI got '%s', time to trigger to the other node\x1b[0m", ev)
 
-	iface.Node.(port.Node).Output["Clicked"](ev)
+	iface.Node.(*ButtonSimple).Output["Clicked"](ev)
 }
 
 func RegisterButtonSimple() {

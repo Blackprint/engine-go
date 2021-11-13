@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	portType "github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
@@ -40,6 +39,8 @@ var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
 func (iface *Interface) QPrepare() {
+	iface.customEvent = &customEvent{}
+
 	node := iface.Node
 	fmt.Println(iface.Namespace)
 
@@ -58,7 +59,7 @@ func (iface *Interface) QPrepare() {
 		ifacePort := map[string]*Port{}
 		utils.SetProperty(iface, which, ifacePort)
 
-		upgradePort := map[string]GetterSetter{}
+		upgradePort := map[string]portType.GetterSetter{}
 
 		// name: string, config: PortFeature
 		for name, config_ := range port {
@@ -97,7 +98,7 @@ func (iface *Interface) QPrepare() {
 				} else if feature == portType.TypeArrayOf {
 					// pass
 				} else {
-					panic(iface.Namespace + ": '" + name + "' Port feature(" + strconv.Itoa(feature) + ") for initialization was not recognized")
+					// panic(iface.Namespace + ": '" + name + "' Port feature(" + strconv.Itoa(feature) + ") for initialization was not recognized")
 				}
 			}
 
@@ -110,6 +111,7 @@ func (iface *Interface) QPrepare() {
 				Feature: feature,
 			}
 
+			ifacePort[name] = &linkedPort
 			upgradePort[name] = linkedPort.CreateLinker()
 		}
 

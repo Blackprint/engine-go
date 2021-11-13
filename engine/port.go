@@ -21,9 +21,8 @@ type Port struct {
 	Sync    bool
 	Feature int
 }
-type GetterSetter func(...interface{}) interface{}
 
-func (port *Port) CreateLinker() GetterSetter {
+func (port *Port) CreateLinker() portTypes.GetterSetter {
 	if port.Type == types.Function {
 		if port.Source == "output" {
 			return func(data ...interface{}) interface{} {

@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/utils"
 )
 
@@ -187,6 +188,8 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
 	}
 
+	utils.SetProperty(iface, "Node", node)
+
 	// Assign the saved options if exist
 	// Must be called here to avoid port trigger
 	if options.Data != nil {
@@ -231,6 +234,6 @@ func deepMerge(real InterfaceData, merge InterfaceData) {
 			continue
 		}
 
-		real[key].(GetterSetter)(val)
+		real[key].(port.GetterSetter)(val)
 	}
 }

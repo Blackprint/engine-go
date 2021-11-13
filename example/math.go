@@ -22,7 +22,7 @@ type MathMultiple struct {
 
 // Your own processing mechanism
 func (node *MathMultiple) Multiply() int {
-	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m", node.Input["A"], node.Input["B"])
+	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m", node.Input["A"]().(int), node.Input["B"]().(int))
 	return node.Input["A"]().(int) * node.Input["B"]().(int)
 }
 

@@ -40,7 +40,7 @@ func (iface *LoggerIFace) Init() {
 		}
 	}
 
-	node := iface.Node.(engine.Node)
+	node := iface.Node.(*LoggerNode)
 
 	// Let's show data after new cable was connected or disconnected
 	iface.On("cable.connect cable.disconnect", func(_cable interface{}) {

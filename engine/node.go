@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/utils"
 )
 
@@ -14,9 +15,9 @@ type Node struct {
 	TInput    map[string]interface{} // interface = port value
 	TProperty map[string]interface{} // interface = port value
 
-	Output   map[string]GetterSetter
-	Input    map[string]GetterSetter
-	Property map[string]GetterSetter
+	Output   map[string]port.GetterSetter
+	Input    map[string]port.GetterSetter
+	Property map[string]port.GetterSetter
 }
 
 type NodeHandler func(*Instance) interface{}        // interface = extends *engine.Node
@@ -31,9 +32,10 @@ var QInterfaceList = map[string]InterfaceHandler{}
 // This will return *pointer
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
-		iface := &Interface{QInitialized: true, Node: n}
+		iface := &Interface{QInitialized: true}
 
 		n.Iface = iface
+		n.customEvent = &customEvent{}
 		return iface
 	}
 
@@ -50,6 +52,7 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 
 	utils.SetProperty(iface, "QInitialized", true)
 	n.Iface = iface
+	n.customEvent = &customEvent{}
 
 	return iface
 }

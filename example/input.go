@@ -5,6 +5,7 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
+	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 )
 
@@ -19,8 +20,8 @@ type InputSimple struct {
 }
 
 // Bring value from imported iface to node output
-func (node InputSimple) Imported() {
-	val := node.Iface.(engine.Interface).Data["value"].(engine.GetterSetter)()
+func (node *InputSimple) Imported() {
+	val := node.Iface.(*InputSimpleIFace).Data["value"].(port.GetterSetter)()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m", val)
 	}
@@ -32,7 +33,7 @@ type InputSimpleIFace struct {
 	engine.Interface
 }
 
-func (iface InputSimpleIFace) Changed(val interface{}) {
+func (iface *InputSimpleIFace) Changed(val interface{}) {
 	// This node still being imported
 	if iface.Importing != false {
 		return
@@ -40,7 +41,7 @@ func (iface InputSimpleIFace) Changed(val interface{}) {
 
 	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m", val)
 
-	node := iface.Node.(engine.Node)
+	node := iface.Node.(*InputSimple)
 	node.Output["Value"](val)
 
 	// This will call every connected node
