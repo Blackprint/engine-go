@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/blackprint/engine-go/utils"
 )
@@ -156,21 +157,20 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 
 func (instance *Instance) GetNode(id interface{}) interface{} {
 	for _, val := range instance.IfaceList {
-		iface := val.(Interface)
-		if iface.Id == id || iface.I == id {
-			return iface.Node
+		temp := reflect.ValueOf(val).Elem()
+		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
+			return utils.GetProperty(val, "Node")
 		}
 	}
 	return nil
 }
 
 func (instance *Instance) GetNodes(namespace string) []interface{} {
-	var got []interface{} // interface = extends 'Node'
+	var got []interface{} // interface = extends 'engine.Node'
 
 	for _, val := range instance.IfaceList {
-		iface := val.(Interface)
-		if iface.Namespace == namespace {
-			got = append(got, val)
+		if utils.GetProperty(val, "Namespace").(string) == namespace {
+			got = append(got, utils.GetProperty(val, "Node"))
 		}
 	}
 

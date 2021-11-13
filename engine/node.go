@@ -59,7 +59,7 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 }
 
 // To be overriden
-func (n *Node) Init()                     {}
-func (n *Node) Request(*Port, *Interface) {}
-func (n *Node) Update(*Cable)             {}
-func (n *Node) Imported()                 {}
+func (n *Node) Init()                      {}
+func (n *Node) Request(*Port, interface{}) {} // interface{} => extends engine.Interface
+func (n *Node) Update(*Cable)              {}
+func (n *Node) Imported()                  {}
