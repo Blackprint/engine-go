@@ -29,16 +29,8 @@ type Interface struct {
 	Importing   bool
 }
 
-type IInterface interface {
-	Obj() *Interface
-}
-
 // To be overriden
 func (iface *Interface) Init() {}
-
-func (iface *Interface) Obj() *Interface {
-	return iface
-}
 
 // Private (to be called for internal library only)
 func (iface *Interface) QPrepare() {

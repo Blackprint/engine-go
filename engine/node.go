@@ -1,5 +1,9 @@
 package engine
 
+import (
+	"github.com/blackprint/engine-go/utils"
+)
+
 type Node struct {
 	customEvent
 	Instance *Instance
@@ -10,34 +14,21 @@ type Node struct {
 	Property map[string]interface{} // interface = port value
 }
 
-type INode interface {
-	SetInterface(namespace ...string) interface{}
-	Init()
-	Request(*Port, *Interface)
-	Update(Cable)
-	Imported()
-}
-type INodeInternal interface {
-	INode
-	Obj() *Node
-}
-
-type NodeHandler func(*Instance) interface{}
-type InterfaceHandler func(interface{}) interface{}
+type NodeHandler func(*Instance) interface{}        // interface = extends *engine.Node
+type InterfaceHandler func(interface{}) interface{} // interface = extends *engine.Node and *engine.Interface
 
 // QNodeList = Private function, for internal library only
-var QNodeList = map[string]NodeHandler{} // interface = extends 'Node'
+var QNodeList = map[string]NodeHandler{}
 
 // QInterfaceList = Private function, for internal library only
 var QInterfaceList = map[string]InterfaceHandler{}
 
-func (n *Node) Obj() *Node {
-	return n
-}
-
+// This will return *pointer
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
-		return Interface{}
+		iface := &Interface{QInitialized: true}
+		n.Iface = iface
+		return iface
 	}
 
 	name := namespace[0]
@@ -46,11 +37,15 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 		panic("Node interface for '" + name + "' was not found, maybe .registerInterface() haven't being called?")
 	}
 
-	iface := class(n).(Interface)
-	iface.Obj().QInitialized = true
+	iface := class(n)
+	if utils.IsPointer(iface) == false {
+		panic(".registerInterface() must return pointer")
+	}
+
+	utils.SetProperty(iface, "QInitialized", true)
 	n.Iface = iface
 
-	return &iface
+	return iface
 }
 
 // To be overriden
