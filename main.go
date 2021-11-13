@@ -19,17 +19,17 @@ func main() {
 	// Anyway.. lets to run something :)
 	button := instance.Iface["myButton"].(*example.ButtonSimpleIFace)
 
-	fmt.Println("\n\n>> I'm clicking the button")
+	fmt.Println("\n>> I'm clicking the button")
 	button.Clicked(123)
 
 	logger := instance.Iface["myLogger"].(*example.LoggerIFace)
-	fmt.Println("\n\n>> I got the output value: " + logger.Log().(string))
+	fmt.Println("\n>> I got the output value: " + logger.Log().(string))
 
-	fmt.Println("\n\n>> I'm writing something to the input box")
+	fmt.Println("\n>> I'm writing something to the input box")
 	input := instance.Iface["myInput"].(*example.InputSimpleIFace)
 	input.Data["value"]("hello wrold")
 
 	// you can also use getNodes if you haven't set the ID
 	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*example.LoggerNode).Iface.(*example.LoggerIFace)
-	fmt.Println("\n\n>> I got the output value: " + myLogger.Log().(string))
+	fmt.Println("\n>> I got the output value: " + myLogger.Log().(string))
 }
