@@ -7,8 +7,23 @@
     <a href='https://github.com/Blackprint/Blackprint/blob/master/LICENSE'><img src='https://img.shields.io/badge/License-MIT-brightgreen.svg' height='20'></a>
 </p>
 
+## Example
+
+![VEfiZCFQAi](https://user-images.githubusercontent.com/11073373/141679777-ddd9738f-4d09-42f1-b635-9d0c9a8c5952.png)
+
+This repository provide an example with the JSON too, and you can try it on CLI:<br>
+
+```sh
+# Change your working directory into empty folder first
+$ git clone --depth 1 https://github.com/Blackprint/engine-go .
+$ go mod init
+$ go test
+```
+
 ## Note
+
 This engine is focused for easy to use API, currently some implementation still not efficient because Golang doesn't support:
+
 - Getter/setter (solution: use function as a getter/setter)
 - Optional parameter (solution: use `...interface{}`)
 
@@ -17,10 +32,12 @@ This engine is focused for easy to use API, currently some implementation still 
 Some implementation also use `reflect` for obtaining and setting value by using dynamic field name. It may be improved on the future, current implementation is focused to be similar with PHP and JS.
 
 ## Documentation
+
 > Warning: This project haven't reach it stable version (semantic versioning at v1.0.0)<br>
 > But please try to use it and help the author for improving this project
 
 > Need help writing '-'
 
 ## License
+
 MIT
