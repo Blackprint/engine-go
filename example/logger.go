@@ -51,7 +51,7 @@ func (iface *LoggerIFace) Init() {
 
 	iface.Input["Any"].On("value", func(_port interface{}) {
 		port := _port.(*engine.Port)
-		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mI connected to %s (port %s), that have new value: %s\x1b[0m\n", port.Name, port.Iface.Title, port.Value)
+		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mI connected to %s (port %s), that have new value: %s\x1b[0m\n", port.Iface.Title, port.Name, port.Value)
 
 		// Let's take all data from all connected nodes
 		// Instead showing new single data. val

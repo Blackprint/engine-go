@@ -41,11 +41,11 @@ func (c *Cable) QConnected() {
 
 	var inp, out *Port
 	if c.Owner.Source == port.Input {
-		inp = c.Target
-		out = c.Owner
-	} else {
 		inp = c.Owner
 		out = c.Target
+	} else {
+		inp = c.Target
+		out = c.Owner
 	}
 
 	if out.Value != nil {
