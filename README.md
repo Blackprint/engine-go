@@ -7,8 +7,7 @@
     <a href='https://github.com/Blackprint/Blackprint/blob/master/LICENSE'><img src='https://img.shields.io/badge/License-MIT-brightgreen.svg' height='20'></a>
 </p>
 
-## Blackprint Engine for Golang
-Note:
+## Note
 This engine is focused for easy to use API, currently some implementation still not efficient because Golang doesn't support:
 - Getter/setter (solution: use function as a getter/setter)
 - Optional parameter (solution: use `...interface{}`)
