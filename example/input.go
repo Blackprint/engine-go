@@ -1,7 +1,7 @@
 package example
 
 import (
-	"fmt"
+	"log"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -22,7 +22,7 @@ type InputSimple struct {
 func (node *InputSimple) Imported() {
 	val := node.Iface.(*InputSimpleIFace).Data["value"]()
 	if val != nil {
-		fmt.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
+		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
 	}
 
 	node.Output["Value"](val)
@@ -38,7 +38,7 @@ func (iface *InputSimpleIFace) Changed(val interface{}) {
 		return
 	}
 
-	fmt.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m\n", val)
+	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m\n", val)
 
 	node := iface.Node.(*InputSimple)
 	node.Output["Value"](val)
@@ -81,11 +81,7 @@ func RegisterInputSimple() {
 						}
 
 						value = val[0].(string)
-
-						if iface.Importing == false {
-							iface.Changed(value)
-						}
-
+						iface.Changed(value)
 						return nil
 					},
 				},

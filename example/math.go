@@ -1,7 +1,7 @@
 package example
 
 import (
-	"fmt"
+	"log"
 	"math/rand"
 	"reflect"
 	"strconv"
@@ -26,7 +26,7 @@ type MathMultiple struct {
 
 // Your own processing mechanism
 func (node *MathMultiple) Multiply() int {
-	fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"]().(int), node.Input["B"]().(int))
+	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"]().(int), node.Input["B"]().(int))
 	return node.Input["A"]().(int) * node.Input["B"]().(int)
 }
 
@@ -45,12 +45,13 @@ func RegisterMathMultiply() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePort{
-					"Exec": port.Trigger(func(...interface{}) {
+					"Exec": port.Trigger(func(val ...interface{}) {
 						node.Output["Result"](node.Multiply())
+						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"]())
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val interface{}) interface{} {
-						fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.Interface).Title, val)
+						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.Interface).Title, val)
 
 						// Convert string to number
 						if reflect.ValueOf(val).Kind() == reflect.String {
@@ -74,7 +75,7 @@ func RegisterMathMultiply() {
 
 		node.On("cable.connect", func(event interface{}) {
 			ev := event.(engine.CableEvent)
-			fmt.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
+			log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
 		})
 
 		return &node
@@ -96,7 +97,7 @@ func (node *MathRandom) Request(port *engine.Port, iface_ interface{}) bool {
 	}
 
 	iface := iface_.(*engine.Interface)
-	fmt.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
+	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
 
 	// Let's create the value for him
 	node.Input["Re-seed"]().(func(...interface{}))()

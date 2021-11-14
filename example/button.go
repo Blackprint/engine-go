@@ -1,7 +1,7 @@
 package example
 
 import (
-	"fmt"
+	"log"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -22,7 +22,7 @@ type ButtonSimpleIFace struct {
 }
 
 func (iface *ButtonSimpleIFace) Clicked(ev interface{}) {
-	fmt.Printf("\x1b[1m\x1b[33mButton\\Simple:\x1b[0m \x1b[33mI got '%d', time to trigger to the other node\x1b[0m\n", ev)
+	log.Printf("\x1b[1m\x1b[33mButton\\Simple:\x1b[0m \x1b[33mI got '%d', time to trigger to the other node\x1b[0m\n", ev)
 
 	iface.Node.(*ButtonSimple).Output["Clicked"](ev)
 }
