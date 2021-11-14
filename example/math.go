@@ -51,7 +51,7 @@ func RegisterMathMultiply() {
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val interface{}) interface{} {
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.Interface).Title, val)
+						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(engine.IFace).Title, val)
 
 						// Convert string to number
 						if reflect.ValueOf(val).Kind() == reflect.String {
@@ -70,7 +70,7 @@ func RegisterMathMultiply() {
 			},
 		}
 
-		iface := node.SetInterface().(*engine.Interface) // default interface
+		iface := node.SetInterface().(*engine.IFace) // default interface
 		iface.Title = "Multiply"
 
 		node.On("cable.connect", func(event interface{}) {
@@ -96,7 +96,7 @@ func (node *MathRandom) Request(port *engine.Port, iface_ interface{}) bool {
 		return false
 	}
 
-	iface := iface_.(*engine.Interface)
+	iface := iface_.(*engine.IFace)
 	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
 
 	// Let's create the value for him
@@ -129,7 +129,7 @@ func RegisterMathRandom() {
 			},
 		}
 
-		iface := node.SetInterface().(*engine.Interface) // default interface
+		iface := node.SetInterface().(*engine.IFace) // default interface
 		iface.Title = "Random"
 
 		return &node

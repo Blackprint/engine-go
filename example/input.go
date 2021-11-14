@@ -29,7 +29,7 @@ func (node *InputSimple) Imported() {
 }
 
 type InputSimpleIFace struct {
-	engine.Interface
+	engine.IFace
 }
 
 func (iface *InputSimpleIFace) Changed(val interface{}) {
@@ -73,7 +73,7 @@ func RegisterInputSimple() {
 
 		var iface InputSimpleIFace
 		iface = InputSimpleIFace{
-			Interface: engine.Interface{
+			IFace: engine.IFace{
 				Data: engine.InterfaceData{
 					"value": func(val ...interface{}) interface{} {
 						if len(val) == 0 {

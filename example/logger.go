@@ -20,7 +20,7 @@ type LoggerNode struct {
 	engine.Node
 }
 type LoggerIFace struct {
-	engine.Interface
+	engine.IFace
 	log string
 }
 
@@ -91,7 +91,7 @@ func RegisterLogger() {
 	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ interface{}) interface{} {
 		// node := node_.(LoggerNode)
 		return &LoggerIFace{
-			Interface: engine.Interface{},
+			IFace: engine.IFace{},
 		}
 	})
 }

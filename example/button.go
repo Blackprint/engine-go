@@ -18,7 +18,7 @@ type ButtonSimple struct {
 	*engine.Node
 }
 type ButtonSimpleIFace struct {
-	*engine.Interface
+	*engine.IFace
 }
 
 func (iface *ButtonSimpleIFace) Clicked(ev interface{}) {
@@ -49,7 +49,7 @@ func RegisterButtonSimple() {
 	Blackprint.RegisterInterface("BPIC/Example/Button", func(node interface{}) interface{} {
 		// node_ := node.(ButtonSimple)
 		return &ButtonSimpleIFace{
-			Interface: &engine.Interface{},
+			IFace: &engine.IFace{},
 		}
 	})
 }

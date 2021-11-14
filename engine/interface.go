@@ -11,7 +11,7 @@ import (
 var portList = [3]string{"Input", "Output", "Property"}
 
 type InterfaceData map[string]portType.GetterSetter
-type Interface struct {
+type IFace struct {
 	*customEvent
 	QInitialized bool // for internal library only
 
@@ -32,12 +32,12 @@ type Interface struct {
 }
 
 // To be overriden
-func (iface *Interface) Init() {}
+func (iface *IFace) Init() {}
 
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
-func (iface *Interface) QPrepare() {
+func (iface *IFace) QPrepare() {
 	iface.customEvent = &customEvent{}
 
 	node := iface.Node

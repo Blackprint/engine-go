@@ -61,12 +61,12 @@ type nodePortTarget struct {
 	Name string `json:"name"`
 }
 
-func (instance *Instance) ImportJSON(str []byte) {
+func (instance *Instance) ImportJSON(str []byte) (err error) {
 	var data SingleInstanceJSON
 
-	err := json.Unmarshal(str, &data)
+	err = json.Unmarshal(str, &data)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
 	ifaceList := instance.IfaceList
@@ -143,6 +143,7 @@ func (instance *Instance) ImportJSON(str []byte) {
 	for _, val := range nodes {
 		utils.CallFunction(val, "Init", utils.EmptyArgs)
 	}
+	return
 }
 
 func (instance *Instance) Settings(id string, val ...bool) bool {
