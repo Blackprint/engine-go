@@ -1,4 +1,4 @@
-package main
+package example
 
 import (
 	"log"
@@ -7,18 +7,17 @@ import (
 	"time"
 
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/example"
 )
 
 // for benchmarking
 var instance *engine.Instance
-var input *example.InputSimpleIFace
+var input *InputSimpleIFace
 
 func TestMain(m *testing.M) {
 	log.SetFlags(0)
 	// log.SetOutput(ioutil.Discard)
 
-	example.RegisterAll()
+	RegisterAll()
 
 	// === Import JSON after all nodes was registered ===
 	// You can import the JSON to Blackprint Sketch if you want to view the nodes visually
@@ -28,20 +27,20 @@ func TestMain(m *testing.M) {
 
 	// Because Golang lack of getter and setter, We need to get or set like calling a function
 	// Anyway.. lets to run something :)
-	button := instance.Iface["myButton"].(*example.ButtonSimpleIFace)
+	button := instance.Iface["myButton"].(*ButtonSimpleIFace)
 
 	log.Println("\n>> I'm clicking the button")
 	button.Clicked(123)
 
-	logger := instance.Iface["myLogger"].(*example.LoggerIFace)
+	logger := instance.Iface["myLogger"].(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + logger.Log().(string))
 
 	log.Println("\n>> I'm writing something to the input box")
-	input = instance.Iface["myInput"].(*example.InputSimpleIFace)
+	input = instance.Iface["myInput"].(*InputSimpleIFace)
 	input.Data["value"]("hello wrold")
 
 	// you can also use getNodes if you haven't set the ID
-	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*example.LoggerNode).Iface.(*example.LoggerIFace)
+	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*LoggerNode).Iface.(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + myLogger.Log().(string))
 }
 
