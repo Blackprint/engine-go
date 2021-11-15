@@ -17,10 +17,10 @@ func RegisterDisplay() {
 
 // ============
 type LoggerNode struct {
-	engine.Node
+	*engine.Node
 }
 type LoggerIFace struct {
-	engine.IFace
+	*engine.Interface
 	log string
 }
 
@@ -72,7 +72,7 @@ func (iface *LoggerIFace) Log(val ...interface{}) interface{} {
 func RegisterLogger() {
 	Blackprint.RegisterNode("Example/Display/Logger", func(instance *engine.Instance) interface{} {
 		node := LoggerNode{
-			Node: engine.Node{
+			Node: &engine.Node{
 				Instance: instance,
 
 				// Node's Input Port Template
@@ -91,7 +91,7 @@ func RegisterLogger() {
 	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ interface{}) interface{} {
 		// node := node_.(LoggerNode)
 		return &LoggerIFace{
-			IFace: engine.IFace{},
+			Interface: &engine.Interface{},
 		}
 	})
 }

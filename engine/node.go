@@ -8,12 +8,12 @@ import (
 type Node struct {
 	*customEvent
 	Instance *Instance
-	Iface    interface{}
+	IFace    interface{} // interface = extends *engine.Interface
 
 	// Port Template
-	TOutput   map[string]interface{} // interface = port value
-	TInput    map[string]interface{} // interface = port value
-	TProperty map[string]interface{} // interface = port value
+	TOutput   map[string]interface{} // interface = port.Type or *port.Feature
+	TInput    map[string]interface{} // interface = port.Type or *port.Feature
+	TProperty map[string]interface{} // interface = port.Type or *port.Feature
 
 	Output   map[string]port.GetterSetter
 	Input    map[string]port.GetterSetter
@@ -21,7 +21,7 @@ type Node struct {
 }
 
 type NodeHandler func(*Instance) interface{}        // interface = extends *engine.Node
-type InterfaceHandler func(interface{}) interface{} // interface = extends *engine.Node and *engine.Interface
+type InterfaceHandler func(interface{}) interface{} // interface = extends *engine.Node, *engine.Interface
 
 // QNodeList = Private function, for internal library only
 var QNodeList = map[string]NodeHandler{}
@@ -32,9 +32,10 @@ var QInterfaceList = map[string]InterfaceHandler{}
 // This will return *pointer
 func (n *Node) SetInterface(namespace ...string) interface{} {
 	if len(namespace) == 0 {
-		iface := &IFace{QInitialized: true, Importing: true}
+		// Default interface (BP/Default)
+		iface := &Interface{QInitialized: true, Importing: true}
 
-		n.Iface = iface
+		n.IFace = iface
 		n.customEvent = &customEvent{}
 		return iface
 	}
@@ -52,7 +53,7 @@ func (n *Node) SetInterface(namespace ...string) interface{} {
 
 	utils.SetProperty(iface, "QInitialized", true)
 	utils.SetProperty(iface, "Importing", true)
-	n.Iface = iface
+	n.IFace = iface
 	n.customEvent = &customEvent{}
 
 	return iface

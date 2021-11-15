@@ -14,7 +14,7 @@ type Port struct {
 	Type    reflect.Kind
 	Cables  []*Cable
 	Source  int
-	Iface   *IFace
+	Iface   *Interface
 	Default interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Value   interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Func    func(interface{})

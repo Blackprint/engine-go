@@ -15,12 +15,12 @@ func RegisterInput() {
 
 // ============
 type InputSimple struct {
-	engine.Node
+	*engine.Node
 }
 
 // Bring value from imported iface to node output
 func (node *InputSimple) Imported() {
-	val := node.Iface.(*InputSimpleIFace).Data["value"]()
+	val := node.IFace.(*InputSimpleIFace).Data["value"]()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
 	}
@@ -29,7 +29,7 @@ func (node *InputSimple) Imported() {
 }
 
 type InputSimpleIFace struct {
-	engine.IFace
+	*engine.Interface
 }
 
 func (iface *InputSimpleIFace) Changed(val interface{}) {
@@ -50,7 +50,7 @@ func (iface *InputSimpleIFace) Changed(val interface{}) {
 func RegisterInputSimple() {
 	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) interface{} {
 		node := InputSimple{
-			Node: engine.Node{
+			Node: &engine.Node{
 				Instance: instance,
 
 				// Node's Output Port Template
@@ -73,7 +73,7 @@ func RegisterInputSimple() {
 
 		var iface InputSimpleIFace
 		iface = InputSimpleIFace{
-			IFace: engine.IFace{
+			Interface: &engine.Interface{
 				Data: engine.InterfaceData{
 					"value": func(val ...interface{}) interface{} {
 						if len(val) == 0 {

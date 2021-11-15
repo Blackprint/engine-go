@@ -11,33 +11,32 @@ import (
 var portList = [3]string{"Input", "Output", "Property"}
 
 type InterfaceData map[string]portType.GetterSetter
-type IFace struct {
+type Interface struct {
 	*customEvent
 	QInitialized bool // for internal library only
 
-	Id    string
-	I     int // index
-	Title string
-	// Interface string
+	Id        string
+	I         int // index
+	Title     string
 	Namespace string
 
 	Output   map[string]*Port
 	Input    map[string]*Port
 	Property map[string]*Port
 	Data     InterfaceData
-	Node     interface{} // interface = extends 'Node' data type
+	Node     interface{} // interface = extends *engine.Node
 
 	QRequesting bool // private (to be used for internal library only)
 	Importing   bool
 }
 
 // To be overriden
-func (iface *IFace) Init() {}
+func (iface *Interface) Init() {}
 
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
-func (iface *IFace) QPrepare() {
+func (iface *Interface) QPrepare() {
 	iface.customEvent = &customEvent{}
 
 	node := iface.Node
@@ -55,9 +54,9 @@ func (iface *IFace) QPrepare() {
 
 		upgradePort := map[string]portType.GetterSetter{}
 
-		// name: string, config: PortFeature
+		// name: string
 		for name, config_ := range port {
-			var config portType.PortFeature
+			var config *portType.Feature
 			var type_ reflect.Kind
 			var feature int
 
@@ -81,9 +80,9 @@ func (iface *IFace) QPrepare() {
 					panic(iface.Namespace + ": '" + name + "' Port type(" + type_.String() + ") for initialization was not recognized")
 				}
 			} else {
-				config = config_.(portType.PortFeature)
+				config = config_.(*portType.Feature)
 				type_ = config.Type
-				feature = config.Feature
+				feature = config.Id
 
 				if feature == portType.TypeTrigger {
 					def = config.Func

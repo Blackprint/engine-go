@@ -11,15 +11,15 @@ import (
 type NodePort map[string]interface{}
 
 type Instance struct {
-	Iface     map[string]interface{} // Storing with node id if exist
-	IfaceList map[int]interface{}    // Storing with node index
+	IFace     map[string]interface{} // Storing with node id if exist
+	IFaceList map[int]interface{}    // Storing with node index
 	settings  map[string]bool
 }
 
 func New() *Instance {
 	return &Instance{
-		Iface:     map[string]interface{}{},
-		IfaceList: map[int]interface{}{},
+		IFace:     map[string]interface{}{},
+		IFaceList: map[int]interface{}{},
 		settings:  map[string]bool{},
 	}
 }
@@ -69,7 +69,7 @@ func (instance *Instance) ImportJSON(str []byte) (err error) {
 		return
 	}
 
-	ifaceList := instance.IfaceList
+	ifaceList := instance.IFaceList
 	var nodes []interface{}
 
 	// Prepare all ifaces based on the namespace
@@ -157,7 +157,7 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 }
 
 func (instance *Instance) GetNode(id interface{}) interface{} {
-	for _, val := range instance.IfaceList {
+	for _, val := range instance.IFaceList {
 		temp := reflect.ValueOf(val).Elem()
 		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
 			return utils.GetProperty(val, "Node")
@@ -169,7 +169,7 @@ func (instance *Instance) GetNode(id interface{}) interface{} {
 func (instance *Instance) GetNodes(namespace string) []interface{} {
 	var got []interface{} // interface = extends 'engine.Node'
 
-	for _, val := range instance.IfaceList {
+	for _, val := range instance.IFaceList {
 		if utils.GetProperty(val, "Namespace").(string) == namespace {
 			got = append(got, utils.GetProperty(val, "Node"))
 		}
@@ -191,7 +191,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	}
 
 	// *iface: extends engine.Interface
-	iface := utils.GetProperty(node, "Iface")
+	iface := utils.GetProperty(node, "IFace")
 	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
 		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
 	}
@@ -214,11 +214,11 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	if options.Id != "" {
 		utils.SetProperty(iface, "Id", options.Id)
-		instance.Iface[options.Id] = iface
+		instance.IFace[options.Id] = iface
 	}
 
 	utils.SetProperty(iface, "I", options.I)
-	instance.IfaceList[options.I] = iface
+	instance.IFaceList[options.I] = iface
 
 	utils.SetProperty(iface, "Importing", false)
 	utils.CallFunction(node, "Imported", utils.EmptyArgs)
