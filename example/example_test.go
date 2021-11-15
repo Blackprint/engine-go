@@ -27,20 +27,20 @@ func TestMain(m *testing.M) {
 
 	// Because Golang lack of getter and setter, We need to get or set like calling a function
 	// Anyway.. lets to run something :)
-	button := instance.Iface["myButton"].(*ButtonSimpleIFace)
+	button := instance.IFace["myButton"].(*ButtonSimpleIFace)
 
 	log.Println("\n>> I'm clicking the button")
 	button.Clicked(123)
 
-	logger := instance.Iface["myLogger"].(*LoggerIFace)
+	logger := instance.IFace["myLogger"].(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + logger.Log().(string))
 
 	log.Println("\n>> I'm writing something to the input box")
-	input = instance.Iface["myInput"].(*InputSimpleIFace)
+	input = instance.IFace["myInput"].(*InputSimpleIFace)
 	input.Data["value"]("hello wrold")
 
 	// you can also use getNodes if you haven't set the ID
-	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*LoggerNode).Iface.(*LoggerIFace)
+	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*LoggerNode).IFace.(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + myLogger.Log().(string))
 }
 
