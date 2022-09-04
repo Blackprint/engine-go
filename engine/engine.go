@@ -8,23 +8,22 @@ import (
 	"github.com/blackprint/engine-go/utils"
 )
 
-type NodePort map[string]interface{}
+type NodePort map[string]any
 
 type Instance struct {
-	IFace     map[string]interface{} // Storing with node id if exist
-	IFaceList map[int]interface{}    // Storing with node index
+	IFace     map[string]any // Storing with node id if exist
+	IFaceList map[int]any    // Storing with node index
 	settings  map[string]bool
 }
 
 func New() *Instance {
 	return &Instance{
-		IFace:     map[string]interface{}{},
-		IFaceList: map[int]interface{}{},
+		IFace:     map[string]any{},
+		IFaceList: map[int]any{},
 		settings:  map[string]bool{},
 	}
 }
 
-//
 type Data struct {
 	Value string `json:"value"`
 }
@@ -53,7 +52,7 @@ type nodeList []nodeConfig
 type nodeConfig struct {
 	I      int                         `json:"i"`
 	Id     string                      `json:"id"`
-	Data   interface{}                 `json:"data"`
+	Data   any                         `json:"data"`
 	Output map[string][]nodePortTarget `json:"output"`
 }
 type nodePortTarget struct {
@@ -70,7 +69,7 @@ func (instance *Instance) ImportJSON(str []byte) (err error) {
 	}
 
 	ifaceList := instance.IFaceList
-	var nodes []interface{}
+	var nodes []any
 
 	// Prepare all ifaces based on the namespace
 	// before we create cables for them
@@ -156,7 +155,7 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 	return temp
 }
 
-func (instance *Instance) GetNode(id interface{}) interface{} {
+func (instance *Instance) GetNode(id any) any {
 	for _, val := range instance.IFaceList {
 		temp := reflect.ValueOf(val).Elem()
 		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
@@ -166,8 +165,8 @@ func (instance *Instance) GetNode(id interface{}) interface{} {
 	return nil
 }
 
-func (instance *Instance) GetNodes(namespace string) []interface{} {
-	var got []interface{} // interface = extends 'engine.Node'
+func (instance *Instance) GetNodes(namespace string) []any {
+	var got []any // any = extends 'engine.Node'
 
 	for _, val := range instance.IFaceList {
 		if utils.GetProperty(val, "Namespace").(string) == namespace {
@@ -178,7 +177,7 @@ func (instance *Instance) GetNodes(namespace string) []interface{} {
 	return got
 }
 
-func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []interface{}) (interface{}, []interface{}) {
+func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []any) (any, []any) {
 	func_ := QNodeList[namespace]
 	if func_ == nil {
 		panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
@@ -203,7 +202,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	if options.Data != nil {
 		data := utils.GetPropertyRef(iface, "Data").(*InterfaceData)
 		if data != nil {
-			deepMerge(data, options.Data.(map[string]interface{}))
+			deepMerge(data, options.Data.(map[string]any))
 		}
 	}
 
@@ -234,7 +233,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 }
 
 // Currently only one level
-func deepMerge(real_ *InterfaceData, merge map[string]interface{}) {
+func deepMerge(real_ *InterfaceData, merge map[string]any) {
 	real := *real_
 	for key, val := range merge {
 		real[key](val)

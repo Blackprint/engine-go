@@ -45,7 +45,7 @@ type HelloNode struct {
 
 // This will be registered as Node definition
 func main() {
-    Blackprint.RegisterNode("Example/Hello", func(instance *engine.Instance) interface{} {
+    Blackprint.RegisterNode("Example/Hello", func(instance *engine.Instance) any {
         node := HelloNode{
             Node: &engine.Node{ // Contruct the parent constructor
                 Instance: instance,
@@ -113,7 +113,7 @@ func(iface *HelloIFace) Recalculate(){
 
 func main() {
     // Your Interface namespace must use "BPIC" as the prefix
-    Blackprint.RegisterInterface("BPIC/Example/Hello", func(node interface{}) interface{} {
+    Blackprint.RegisterInterface("BPIC/Example/Hello", func(node any) any {
         // node := node_.(HelloNode)
         value := 123
 
@@ -121,7 +121,7 @@ func main() {
         iface = HelloIFace{
             Interface: &engine.Interface{  // Contruct the parent constructor
                 Data: engine.InterfaceData{
-                    "value": func(val ...interface{}) interface{} {
+                    "value": func(val ...any) any {
                         if len(val) == 0 { // Getter
                             return value
                         }
@@ -219,7 +219,7 @@ func main(){
     // Note: Trigger port can only be placed on Input port
     // Example on `./example/math.go`
         TInput: engine.NodePort{
-            "Clicked": port.Trigger(func(args ...interface{}) {
+            "Clicked": port.Trigger(func(args ...any) {
                 fmt.Println(args)
             }),
         },
@@ -231,9 +231,9 @@ func main(){
 This engine is focused for easy to use API, currently some implementation still not efficient because Golang doesn't support:
 
 - Getter/setter (solution: use function as a getter/setter)
-- Optional parameter (solution: use `...interface{}`)
+- Optional parameter (solution: use `...any`)
 
-`interface{}` or `any` still being used massively to make Blackprint works without too much complexity in Golang, so please don't expect too high for the performance. Some implementation also use `reflect` for obtaining and setting value by using dynamic field name. Current implementation is focused to be similar with PHP and JS.
+`any` or `any` still being used massively to make Blackprint works without too much complexity in Golang, so please don't expect too high for the performance. Some implementation also use `reflect` for obtaining and setting value by using dynamic field name. Current implementation is focused to be similar with PHP and JS.
 
 ## License
 

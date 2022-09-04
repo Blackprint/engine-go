@@ -1,6 +1,6 @@
 package port
 
-type GetterSetter func(...interface{}) interface{}
+type GetterSetter func(...any) any
 type Node struct {
 	Input    map[string]GetterSetter
 	Output   map[string]GetterSetter

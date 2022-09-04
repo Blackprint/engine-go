@@ -32,7 +32,7 @@ type InputSimpleIFace struct {
 	*engine.Interface
 }
 
-func (iface *InputSimpleIFace) Changed(val interface{}) {
+func (iface *InputSimpleIFace) Changed(val any) {
 	// This node still being imported
 	if iface.Importing != false {
 		return
@@ -48,7 +48,7 @@ func (iface *InputSimpleIFace) Changed(val interface{}) {
 }
 
 func RegisterInputSimple() {
-	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) interface{} {
+	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) any {
 		node := InputSimple{
 			Node: &engine.Node{
 				Instance: instance,
@@ -67,7 +67,7 @@ func RegisterInputSimple() {
 		return &node
 	})
 
-	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ interface{}) interface{} {
+	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ any) any {
 		// node := node_.(InputSimple)
 		value := "..."
 
@@ -75,7 +75,7 @@ func RegisterInputSimple() {
 		iface = InputSimpleIFace{
 			Interface: &engine.Interface{
 				Data: engine.InterfaceData{
-					"value": func(val ...interface{}) interface{} {
+					"value": func(val ...any) any {
 						if len(val) == 0 {
 							return value
 						}

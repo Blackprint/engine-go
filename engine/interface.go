@@ -24,7 +24,7 @@ type Interface struct {
 	Input    map[string]*Port
 	Property map[string]*Port
 	Data     InterfaceData
-	Node     interface{} // interface = extends *engine.Node
+	Node     any // any = extends *engine.Node
 
 	QRequesting bool // private (to be used for internal library only)
 	Importing   bool
@@ -43,7 +43,7 @@ func (iface *Interface) QPrepare() {
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]
-		port := *utils.GetPropertyRef(node, "T"+which).(*map[string]interface{}) // get value by property name
+		port := *utils.GetPropertyRef(node, "T"+which).(*map[string]any) // get value by property name
 
 		if port == nil {
 			continue
@@ -60,7 +60,7 @@ func (iface *Interface) QPrepare() {
 			var type_ reflect.Kind
 			var feature int
 
-			var def interface{}
+			var def any
 			if reflect.TypeOf(config_) == reflectKind {
 				type_ = config_.(reflect.Kind)
 
@@ -71,7 +71,7 @@ func (iface *Interface) QPrepare() {
 				} else if type_ == types.String {
 					def = ""
 				} else if type_ == types.Array {
-					def = [0]interface{}{} // ToDo: is this actually working?
+					def = [0]any{} // ToDo: is this actually working?
 				} else if type_ == types.Any { // Any
 					// pass
 				} else if type_ == types.Function {

@@ -25,7 +25,7 @@ type LoggerIFace struct {
 }
 
 func (iface *LoggerIFace) Init() {
-	refreshLogger := func(val interface{}) {
+	refreshLogger := func(val any) {
 		if val == nil {
 			val = "nil"
 			iface.Log(val)
@@ -44,12 +44,12 @@ func (iface *LoggerIFace) Init() {
 	node := iface.Node.(*LoggerNode)
 
 	// Let's show data after new cable was connected or disconnected
-	iface.On("cable.connect cable.disconnect", func(_cable interface{}) {
+	iface.On("cable.connect cable.disconnect", func(_cable any) {
 		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mA cable was changed on Logger, now refresing the input element\x1b[0m\n")
 		refreshLogger(node.Input["Any"]())
 	})
 
-	iface.Input["Any"].On("value", func(_port interface{}) {
+	iface.Input["Any"].On("value", func(_port any) {
 		port := _port.(*engine.Port)
 		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mI connected to %s (port %s), that have new value: %v\x1b[0m\n", port.Iface.Title, port.Name, port.Value)
 
@@ -59,7 +59,7 @@ func (iface *LoggerIFace) Init() {
 	})
 }
 
-func (iface *LoggerIFace) Log(val ...interface{}) interface{} {
+func (iface *LoggerIFace) Log(val ...any) any {
 	if len(val) == 0 {
 		return iface.log
 	}
@@ -70,7 +70,7 @@ func (iface *LoggerIFace) Log(val ...interface{}) interface{} {
 }
 
 func RegisterLogger() {
-	Blackprint.RegisterNode("Example/Display/Logger", func(instance *engine.Instance) interface{} {
+	Blackprint.RegisterNode("Example/Display/Logger", func(instance *engine.Instance) any {
 		node := LoggerNode{
 			Node: &engine.Node{
 				Instance: instance,
@@ -88,7 +88,7 @@ func RegisterLogger() {
 		return &node
 	})
 
-	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ interface{}) interface{} {
+	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ any) any {
 		// node := node_.(LoggerNode)
 		return &LoggerIFace{
 			Interface: &engine.Interface{},

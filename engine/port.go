@@ -15,9 +15,9 @@ type Port struct {
 	Cables  []*Cable
 	Source  int
 	Iface   *Interface
-	Default interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
-	Value   interface{} // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
-	Func    func(interface{})
+	Default any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
+	Value   any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
+	Func    func(any)
 	Sync    bool
 	Feature int
 }
@@ -25,7 +25,7 @@ type Port struct {
 func (port *Port) CreateLinker() portTypes.GetterSetter {
 	if port.Type == types.Function {
 		if port.Source == portTypes.Output {
-			return func(data ...interface{}) interface{} {
+			return func(data ...any) any {
 				var target *Port
 				for _, cable := range port.Cables {
 					if cable.Owner == port {
@@ -48,12 +48,12 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 			}
 		}
 
-		return func(data ...interface{}) interface{} {
+		return func(data ...any) any {
 			return port.Default
 		}
 	}
 
-	return func(val ...interface{}) interface{} {
+	return func(val ...any) any {
 		// Getter value
 		if len(val) == 0 {
 			// This port must use values from connected output
@@ -65,7 +65,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 						// ToDo: fix type to follow
 						// the type from port.Type
 
-						return [](interface{}){}
+						return [](any){}
 					}
 
 					return port.Default
@@ -96,14 +96,14 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 					// fmt.Printf("1. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
 
 					if port.Feature == portTypes.TypeArrayOf {
-						var tempVal interface{}
+						var tempVal any
 						if target.Value == nil {
 							tempVal = target.Default
 						} else {
 							tempVal = target.Value
 						}
 
-						return [](interface{}){tempVal}
+						return [](any){tempVal}
 					}
 
 					if target.Value == nil {
@@ -114,7 +114,7 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 				}
 
 				// Return multiple data as an array
-				data := []interface{}{}
+				data := []any{}
 				for _, cable := range port.Cables {
 					var target *Port
 					if cable.Owner == port {
@@ -149,14 +149,14 @@ func (port *Port) CreateLinker() portTypes.GetterSetter {
 			}
 
 			if port.Feature == portTypes.TypeArrayOf {
-				var tempVal interface{}
+				var tempVal any
 				if port.Value == nil {
 					tempVal = port.Default
 				} else {
 					tempVal = port.Value
 				}
 
-				return [](interface{}){tempVal}
+				return [](any){tempVal}
 			}
 
 			if port.Value == nil {

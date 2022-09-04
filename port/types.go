@@ -24,8 +24,8 @@ type Feature struct {
 	Id    int
 	Type  reflect.Kind
 	Types []reflect.Kind
-	Value interface{}
-	Func  interface{}
+	Value any
+	Func  any
 }
 
 /* This port can contain multiple cable as input
@@ -44,7 +44,7 @@ func ArrayOf(type_ reflect.Kind) *Feature {
  * type = Type Data that allowed for the Port
  * value = default value for the port
  */
-func Default(type_ reflect.Kind, val interface{}) *Feature {
+func Default(type_ reflect.Kind, val any) *Feature {
 	return &Feature{
 		Id:    TypeDefault,
 		Type:  type_,
@@ -65,7 +65,7 @@ func Switch(type_ reflect.Kind) *Feature {
 /* This port will be used as a trigger or callable input port
  * func = callback when the port was being called as a function
  */
-func Trigger(callback func(...interface{})) *Feature {
+func Trigger(callback func(...any)) *Feature {
 	return &Feature{
 		Id:   TypeTrigger,
 		Func: callback,
@@ -86,7 +86,7 @@ func Union(types []reflect.Kind) *Feature {
  * then you can write custom data validation in the function
  * the value returned by your function will be used as the input value
  */
-func Validator(type_ reflect.Kind, callback func(interface{}) interface{}) *Feature {
+func Validator(type_ reflect.Kind, callback func(any) any) *Feature {
 	return &Feature{
 		Id:   TypeValidator,
 		Type: type_,

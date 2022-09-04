@@ -21,14 +21,14 @@ type ButtonSimpleIFace struct {
 	*engine.Interface
 }
 
-func (iface *ButtonSimpleIFace) Clicked(ev interface{}) {
+func (iface *ButtonSimpleIFace) Clicked(ev any) {
 	log.Printf("\x1b[1m\x1b[33mButton\\Simple:\x1b[0m \x1b[33mI got '%d', time to trigger to the other node\x1b[0m\n", ev)
 
 	iface.Node.(*ButtonSimple).Output["Clicked"](ev)
 }
 
 func RegisterButtonSimple() {
-	Blackprint.RegisterNode("Example/Button/Simple", func(instance *engine.Instance) interface{} {
+	Blackprint.RegisterNode("Example/Button/Simple", func(instance *engine.Instance) any {
 		node := ButtonSimple{
 			Node: &engine.Node{
 				Instance: instance,
@@ -46,7 +46,7 @@ func RegisterButtonSimple() {
 		return &node
 	})
 
-	Blackprint.RegisterInterface("BPIC/Example/Button", func(node interface{}) interface{} {
+	Blackprint.RegisterInterface("BPIC/Example/Button", func(node any) any {
 		// node_ := node.(ButtonSimple)
 		return &ButtonSimpleIFace{
 			Interface: &engine.Interface{},

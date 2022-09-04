@@ -5,7 +5,7 @@ import (
 )
 
 type eventObj struct {
-	callback interface{}
+	callback any
 	once     bool
 }
 
@@ -13,7 +13,7 @@ type customEvent struct {
 	events map[string][]*eventObj
 }
 
-func (e *customEvent) listen(evName string, callback interface{}, once bool) {
+func (e *customEvent) listen(evName string, callback any, once bool) {
 	if e.events == nil {
 		e.events = map[string][]*eventObj{}
 	}
@@ -43,15 +43,15 @@ func (e *customEvent) listen(evName string, callback interface{}, once bool) {
 	}
 }
 
-func (e *customEvent) On(evName string, callback interface{}) {
+func (e *customEvent) On(evName string, callback any) {
 	e.listen(evName, callback, false)
 }
 
-func (e *customEvent) Once(evName string, callback interface{}) {
+func (e *customEvent) Once(evName string, callback any) {
 	e.listen(evName, callback, true)
 }
 
-func (e *customEvent) Off(evName string, callback interface{}) {
+func (e *customEvent) Off(evName string, callback any) {
 	if e.events == nil {
 		return
 	}
@@ -73,10 +73,10 @@ func (e *customEvent) Off(evName string, callback interface{}) {
 	}
 }
 
-func (e *customEvent) QTrigger(evName string, data interface{}) {
+func (e *customEvent) QTrigger(evName string, data any) {
 	list := e.events[evName]
 	for i, cb := range list {
-		cb.callback.(func(interface{}))(data)
+		cb.callback.(func(any))(data)
 
 		if cb.once {
 			e.events[evName] = append(list[:i], list[i+1:]...)
