@@ -34,6 +34,8 @@ func (s *semantic) registerParserNodes(ns parser.NodeName, nodes parser.NodeList
 		}
 		s.pNodeMapper[node.Index] = node
 		n := NewNodeFromParser(node)
+		n.Namespace = ns
+
 		s.nodeMap[node.Index] = n
 		s.nodeList = append(s.nodeList, n)
 	}
@@ -50,20 +52,18 @@ func (s *semantic) loadParserNodes(root parser.Root) (err error) {
 	}
 	return
 }
-func (s *semantic) generateCables() (err error) {
+func (s *semantic) generateCablesAndPorts() (err error) {
 	for _, node := range s.nodeList {
 		meta := s.pNodeMapper[node.ID]
 		for _, outputs := range meta.Output {
-			for _, out := range outputs {
-				node2, exist := s.nodeMap[out.Index]
+			for _, portOfNode2 := range outputs {
+				node2, exist := s.nodeMap[portOfNode2.Index]
 				if !exist {
-					return fmt.Errorf("target dst cable not found: %+#v", out)
+					return fmt.Errorf("target dst cable not found: %+#v", portOfNode2)
 				}
 				// create cables
-				cab1 := node.CableTo(node2)
-				cab2 := node2.CableTo(node)
-				s.cables = append(s.cables, cab1)
-				s.cables = append(s.cables, cab2)
+				cab := node.CableTo(portOfNode2.Name, node2)
+				s.cables = append(s.cables, cab)
 			}
 		}
 	}
@@ -74,7 +74,7 @@ func (s *semantic) process(root parser.Root) (err error) {
 	if err = s.loadParserNodes(root); err != nil {
 		return
 	}
-	if err = s.generateCables(); err != nil {
+	if err = s.generateCablesAndPorts(); err != nil {
 		return
 	}
 	return

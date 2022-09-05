@@ -1,10 +1,18 @@
 package engine
 
 type Cable struct {
-	A *Node
-	B *Node
+	A    *Node
+	B    *Node
+	Port *Port
 }
 
 func NewCable(a, b *Node) *Cable {
-	return &Cable{a, b}
+	return &Cable{
+		A: a,
+		B: b,
+	}
+}
+
+func (cab *Cable) SetPort(p *Port) {
+	cab.Port = p
 }
