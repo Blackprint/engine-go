@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/utils"
 )
 
@@ -15,9 +14,9 @@ type Node struct {
 	TInput    map[string]any // any = port.Type or *port.Feature
 	TProperty map[string]any // any = port.Type or *port.Feature
 
-	Output   map[string]port.GetterSetter
-	Input    map[string]port.GetterSetter
-	Property map[string]port.GetterSetter
+	Output map[string]*PortOutputGetterSetter
+	Input  map[string]*PortInputGetterSetter
+	// Property map[string]GetterSetter
 }
 
 type NodeHandler func(*Instance) any // any = extends *engine.Node
@@ -49,6 +48,15 @@ func (n *Node) SetInterface(namespace ...string) any {
 	iface := class(n)
 	if utils.IsPointer(iface) == false {
 		panic(".registerInterface() must return pointer")
+	}
+
+	data := utils.GetProperty(iface, "Data")
+	if data != nil {
+		_data := data.(InterfaceData)
+
+		for _, port := range _data {
+			utils.SetProperty(port, "IFace", iface)
+		}
 	}
 
 	utils.SetProperty(iface, "QInitialized", true)

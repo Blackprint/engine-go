@@ -8,11 +8,6 @@ import (
 	"github.com/blackprint/engine-go/types"
 )
 
-// This will be called from example.go
-func RegisterInput() {
-	RegisterInputSimple()
-}
-
 // ============
 type InputSimple struct {
 	*engine.Node
@@ -20,12 +15,12 @@ type InputSimple struct {
 
 // Bring value from imported iface to node output
 func (node *InputSimple) Imported() {
-	val := node.IFace.(*InputSimpleIFace).Data["value"]()
+	val := node.IFace.(*InputSimpleIFace).Data["value"].Get()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
 	}
 
-	node.Output["Value"](val)
+	node.Output["Value"].Set(val)
 }
 
 type InputSimpleIFace struct {
@@ -41,15 +36,30 @@ func (iface *InputSimpleIFace) Changed(val any) {
 	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m\n", val)
 
 	node := iface.Node.(*InputSimple)
-	node.Output["Value"](val)
+	node.Output["Value"].Set(val)
 
 	// This will call every connected node
-	node.Output["Changed"]()
+	node.Output["Changed"].Call()
 }
 
-func RegisterInputSimple() {
+type MyData struct {
+	IFace any
+	val   any
+}
+
+func (gs *MyData) Set(val any) {
+	gs.val = val
+	gs.IFace.(*InputSimpleIFace).Changed(gs.val)
+}
+
+func (gs *MyData) Get() any {
+	return gs.val
+}
+
+// This will be called from example.go
+func RegisterInput() {
 	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) any {
-		node := InputSimple{
+		node := &InputSimple{
 			Node: &engine.Node{
 				Instance: instance,
 
@@ -64,30 +74,21 @@ func RegisterInputSimple() {
 		iface := node.SetInterface("BPIC/Example/Input").(*InputSimpleIFace)
 		iface.Title = "Input"
 
-		return &node
+		return node
 	})
 
 	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ any) any {
 		// node := node_.(InputSimple)
-		value := "..."
 
-		var iface InputSimpleIFace
-		iface = InputSimpleIFace{
+		var iface *InputSimpleIFace
+		iface = &InputSimpleIFace{
 			Interface: &engine.Interface{
 				Data: engine.InterfaceData{
-					"value": func(val ...any) any {
-						if len(val) == 0 {
-							return value
-						}
-
-						value = val[0].(string)
-						iface.Changed(value)
-						return nil
-					},
+					"value": &MyData{val: "..."},
 				},
 			},
 		}
 
-		return &iface
+		return iface
 	})
 }

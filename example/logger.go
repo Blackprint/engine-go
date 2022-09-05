@@ -46,7 +46,7 @@ func (iface *LoggerIFace) Init() {
 	// Let's show data after new cable was connected or disconnected
 	iface.On("cable.connect cable.disconnect", func(_cable any) {
 		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mA cable was changed on Logger, now refresing the input element\x1b[0m\n")
-		refreshLogger(node.Input["Any"]())
+		refreshLogger(node.Input["Any"].Get())
 	})
 
 	iface.Input["Any"].On("value", func(_port any) {
@@ -55,7 +55,7 @@ func (iface *LoggerIFace) Init() {
 
 		// Let's take all data from all connected nodes
 		// Instead showing new single data. val
-		refreshLogger(node.Input["Any"]())
+		refreshLogger(node.Input["Any"].Get())
 	})
 }
 
@@ -71,7 +71,7 @@ func (iface *LoggerIFace) Log(val ...any) any {
 
 func RegisterLogger() {
 	Blackprint.RegisterNode("Example/Display/Logger", func(instance *engine.Instance) any {
-		node := LoggerNode{
+		node := &LoggerNode{
 			Node: &engine.Node{
 				Instance: instance,
 
@@ -85,7 +85,7 @@ func RegisterLogger() {
 		iface := node.SetInterface("BPIC/Example/Display/Logger").(*LoggerIFace)
 		iface.Title = "Logger"
 
-		return &node
+		return node
 	})
 
 	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ any) any {

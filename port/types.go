@@ -2,40 +2,18 @@ package port
 
 import (
 	"reflect"
-)
 
-const (
-	Input = iota + 1
-	Output
-	Property
+	engine "github.com/blackprint/engine-go/engine"
 )
-
-const (
-	TypeArrayOf = iota + 1
-	TypeDefault
-	TypeSwitch
-	TypeTrigger
-	TypeUnion
-	TypeValidator
-)
-
-// Port feature
-type Feature struct {
-	Id    int
-	Type  reflect.Kind
-	Types []reflect.Kind
-	Value any
-	Func  any
-}
 
 /* This port can contain multiple cable as input
  * and the value will be array of 'type'
  * it's only one type, not union
  * for union port, please split it to different port to handle it
  */
-func ArrayOf(type_ reflect.Kind) *Feature {
-	return &Feature{
-		Id:   TypeArrayOf,
+func ArrayOf(type_ reflect.Kind) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:   engine.PortTypeArrayOf,
 		Type: type_,
 	}
 }
@@ -44,9 +22,9 @@ func ArrayOf(type_ reflect.Kind) *Feature {
  * type = Type Data that allowed for the Port
  * value = default value for the port
  */
-func Default(type_ reflect.Kind, val any) *Feature {
-	return &Feature{
-		Id:    TypeDefault,
+func Default(type_ reflect.Kind, val any) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:    engine.PortTypeDefault,
 		Type:  type_,
 		Value: val,
 	}
@@ -55,9 +33,9 @@ func Default(type_ reflect.Kind, val any) *Feature {
 /* Allow many cable connected to a port
  * But only the last value that will used as value
  */
-func Switch(type_ reflect.Kind) *Feature {
-	return &Feature{
-		Id:   TypeSwitch,
+func Switch(type_ reflect.Kind) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:   engine.PortTypeSwitch,
 		Type: type_,
 	}
 }
@@ -65,9 +43,9 @@ func Switch(type_ reflect.Kind) *Feature {
 /* This port will be used as a trigger or callable input port
  * func = callback when the port was being called as a function
  */
-func Trigger(callback func(...any)) *Feature {
-	return &Feature{
-		Id:   TypeTrigger,
+func Trigger(callback func(*engine.Port)) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:   engine.PortTypeTrigger,
 		Func: callback,
 	}
 }
@@ -75,9 +53,9 @@ func Trigger(callback func(...any)) *Feature {
 /* This port can allow multiple different types
  * like an 'any' port, but can only contain one value
  */
-func Union(types []reflect.Kind) *Feature {
-	return &Feature{
-		Id:    TypeUnion,
+func Union(types []reflect.Kind) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:    engine.PortTypeUnion,
 		Types: types,
 	}
 }
@@ -86,9 +64,9 @@ func Union(types []reflect.Kind) *Feature {
  * then you can write custom data validation in the function
  * the value returned by your function will be used as the input value
  */
-func Validator(type_ reflect.Kind, callback func(any) any) *Feature {
-	return &Feature{
-		Id:   TypeValidator,
+func Validator(type_ reflect.Kind, callback func(any) any) *engine.PortFeature {
+	return &engine.PortFeature{
+		Id:   engine.PortTypeValidator,
 		Type: type_,
 		Func: callback,
 	}

@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 
 	log.Println("\n>> I'm writing something to the input box")
 	input = instance.IFace["myInput"].(*InputSimpleIFace)
-	input.Data["value"]("hello wrold")
+	input.Data["value"].Set("hello wrold")
 
 	// you can also use getNodes if you haven't set the ID
 	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*LoggerNode).IFace.(*LoggerIFace)
@@ -50,6 +50,6 @@ func BenchmarkInputBox(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		input.Data["value"]("hello wrold" + strconv.Itoa(time.Now().Nanosecond()))
+		input.Data["value"].Set("hello wrold" + strconv.Itoa(time.Now().Nanosecond()))
 	}
 }

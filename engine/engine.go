@@ -60,6 +60,11 @@ type nodePortTarget struct {
 	Name string `json:"name"`
 }
 
+type GetterSetter interface {
+	Set(val any)
+	Get() any
+}
+
 func (instance *Instance) ImportJSON(str []byte) (err error) {
 	var data SingleInstanceJSON
 
@@ -236,6 +241,6 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 func deepMerge(real_ *InterfaceData, merge map[string]any) {
 	real := *real_
 	for key, val := range merge {
-		real[key](val)
+		real[key].Set(val)
 	}
 }

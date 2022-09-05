@@ -1,11 +1,11 @@
 package example
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"log"
-	"math/rand"
 	"reflect"
 	"strconv"
-	"time"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
@@ -26,14 +26,14 @@ type MathMultiple struct {
 
 // Your own processing mechanism
 func (node *MathMultiple) Multiply() int {
-	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"]().(int), node.Input["B"]().(int))
-	return node.Input["A"]().(int) * node.Input["B"]().(int)
+	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"].Get().(int), node.Input["B"].Get().(int))
+	return node.Input["A"].Get().(int) * node.Input["B"].Get().(int)
 }
 
 // When any output value from other node are updated
 // Let's immediately change current node result
 func (node *MathMultiple) Update(cable *engine.Cable) {
-	node.Output["Result"](node.Multiply())
+	node.Output["Result"].Set(node.Multiply())
 }
 
 func RegisterMathMultiply() {
@@ -45,9 +45,9 @@ func RegisterMathMultiply() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePort{
-					"Exec": port.Trigger(func(val ...any) {
-						node.Output["Result"](node.Multiply())
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"]())
+					"Exec": port.Trigger(func(port *engine.Port) {
+						node.Output["Result"].Set(node.Multiply())
+						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"].Get())
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val any) any {
@@ -100,7 +100,7 @@ func (node *MathRandom) Request(port *engine.Port, iface_ any) bool {
 	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
 
 	// Let's create the value for him
-	node.Input["Re-seed"]().(func(...any))()
+	node.Input["Re-seed"].Call()
 
 	return true
 }
@@ -115,10 +115,11 @@ func RegisterMathRandom() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePort{
-					"Re-seed": port.Trigger(func(...any) {
+					"Re-seed": port.Trigger(func(port *engine.Port) {
 						node.Executed = true
-						rand.Seed(time.Now().UnixNano())
-						node.Output["Out"](rand.Intn(100))
+						byt := make([]byte, 2)
+						rand.Read(byt)
+						node.Output["Out"].Set(int(binary.BigEndian.Uint16(byt[:])) % 100)
 					}),
 				},
 
