@@ -5,7 +5,7 @@ type NodePos struct {
 	Y int `json:"y"`
 }
 
-type NodeOutputList []Node
+type NodeOutputList []*Node
 
 type NodeOutputType string
 
@@ -14,9 +14,9 @@ type NodeOutput map[NodeOutputType]NodeOutputList
 type NodeData map[string]any
 
 type Node struct {
-	Index int       `json:"i"`
-	Name  string    `json:"name"`
-	Data  *NodeData `json:"data"`
+	Index int      `json:"i"`
+	Name  string   `json:"name"`
+	Data  NodeData `json:"data"`
 	NodePos
-	Output *NodeOutput `json:"output"`
+	Output NodeOutput `json:"output"`
 }
