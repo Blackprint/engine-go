@@ -43,6 +43,9 @@ func (iface *Interface) Init()             {}
 func (iface *Interface) Destroy()          {}
 func (iface *Interface) Imported(data any) {}
 
+// Internal blackprint function node initialization
+func (iface *Interface) QBpFnInit() {}
+
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)

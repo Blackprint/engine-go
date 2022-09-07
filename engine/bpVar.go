@@ -17,7 +17,7 @@ func (b *bpVarValue) Get() any {
 
 func (b *bpVarValue) Set(val any) {
 	b.val = val
-	b.Emit("Value", nil)
+	b.Emit("value", nil)
 }
 
 // used for instance.CreateVariable
@@ -26,9 +26,9 @@ type BPVariable struct {
 	Id       string
 	Title    string
 	Type     reflect.Kind
-	Used     []*Interface
+	Used     []any // *engine.Interface
 	Value    bpVarValue
-	Listener []*Interface
+	Listener []any // *engine.Interface
 }
 
 func (b *BPVariable) Destroy() {

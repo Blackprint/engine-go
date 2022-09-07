@@ -156,16 +156,8 @@ func (n *Node) DeletePort(which string, name string) {
 	delete(ports, name)
 }
 
-type NodeLog struct {
-	Iface   any
-	Message string
-}
-
 func (n *Node) Log(message string) {
-	n.Instance.QLog(NodeLog{
-		Iface:   n.Iface,
-		Message: message,
-	})
+	n.Instance.QLog(n.Iface, message)
 }
 
 // To be overriden by module developer
