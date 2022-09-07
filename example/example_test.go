@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 	log.SetFlags(0)
 	// log.SetOutput(ioutil.Discard)
 
-	RegisterAll()
+	// Nodes already be registered from ./example.go -> init()
 
 	// === Import JSON after all nodes was registered ===
 	// You can import the JSON to Blackprint Sketch if you want to view the nodes visually

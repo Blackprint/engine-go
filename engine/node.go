@@ -11,9 +11,9 @@ type Node struct {
 	Instance     *Instance
 	Iface        any // any = extends *engine.Interface
 	DisablePorts bool
-	Routes       RoutePort
+	Routes       *RoutePort
 
-	Ref *referencesShortcut
+	Ref *ReferencesShortcut
 
 	// Port Template
 	TOutput map[string]any // any = port.Type or *port.Feature

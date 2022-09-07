@@ -7,12 +7,10 @@ import (
 
 type bpEnvGet struct {
 	*engine.Node
-	Iface *engine.Interface
 }
 
 type bpEnvSet struct {
 	*engine.Node
-	Iface *engine.Interface
 }
 
 func (b *bpEnvSet) Update(c *engine.Cable) {
@@ -42,7 +40,7 @@ type iEnvGet struct {
 }
 
 func (b *iEnvGet) Imported(data map[string]any) {
-	b.Imported(data)
+	b.bpEnvGetSet.Imported(data)
 
 	b.QListener = func(v any) {
 		ev := v.(*engine.EnvironmentEvent)

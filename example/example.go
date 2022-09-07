@@ -1,6 +1,6 @@
 package example
 
-func RegisterAll() {
+func init() {
 	RegisterButton()
 	RegisterDisplay()
 	RegisterInput()

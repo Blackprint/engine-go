@@ -24,7 +24,7 @@ type Interface struct {
 	Data   InterfaceData
 	Node   any // any = extends *engine.Node
 
-	Ref     *referencesShortcut
+	Ref     *ReferencesShortcut
 	IsGhost bool
 
 	Importing bool
@@ -48,7 +48,7 @@ var reflectKind = reflect.TypeOf(reflect.Int)
 // Private (to be called for internal library only)
 func (iface *Interface) QPrepare() {
 	iface.CustomEvent = &CustomEvent{}
-	ref := &referencesShortcut{}
+	ref := &ReferencesShortcut{}
 
 	node := iface.Node
 	utils.SetProperty(node, "Ref", ref)

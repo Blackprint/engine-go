@@ -22,3 +22,10 @@ func RegisterInterface(namespace string, constructor func(any) any) {
 
 var Event = engine.Event
 var Environment = engine.QEnvironment
+
+func init() {
+	registerEnvNode()
+	registerBpPortVarNode()
+	registerBpFuncNode()
+	registerBpPortVarNode()
+}

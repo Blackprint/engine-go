@@ -18,7 +18,7 @@ type Instance struct {
 	Iface     map[string]any // Storing with node id if exist
 	IfaceList map[int]any    // Storing with node index
 	settings  map[string]bool
-	QFuncMain *bpFuncMain
+	QFuncMain // => *engine.Interface
 }
 
 func New() *Instance {
