@@ -75,7 +75,7 @@ func (r *RoutePort) RouteIn(cable *Cable) {
 	})
 
 	routes := utils.GetProperty(node, "Routes")
-	utils.CallFunction(routes, "RouteOut", nil)
+	utils.CallFunction(routes, "RouteOut", utils.EmptyArgs)
 }
 
 func (r *RoutePort) RouteOut() {
@@ -87,7 +87,7 @@ func (r *RoutePort) RouteOut() {
 		if utils.GetProperty(r.Iface, "QEnum").(int) == nodes.BPFnOutput {
 			node := utils.GetProperty(utils.GetProperty(r.Iface, "QFuncMain"), "Node")
 			route := utils.GetProperty(node, "Routes").(*RoutePort)
-			utils.CallFunction(route, "RouteIn", nil)
+			utils.CallFunction(route, "RouteIn", utils.EmptyArgs)
 		}
 
 		return

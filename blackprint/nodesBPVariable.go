@@ -106,7 +106,7 @@ func (b *bpVarGetSet) UseType_(port *engine.Port, targetPort *engine.Port) {
 
 	// Also create port for other node that using $this variable
 	for _, item := range b.QBpVarRef.Used {
-		utils.CallFunction(item, "QReinitPort", nil)
+		utils.CallFunction(item, "QReinitPort", utils.EmptyArgs)
 	}
 }
 
@@ -116,14 +116,14 @@ func (b *bpVarGetSet) Destroy() {
 		return
 	}
 
-	utils.RemoveItem(temp.Used, b.Interface)
+	temp.Used = utils.RemoveItemAny(temp.Used, b)
 
 	listener := b.QBpVarRef.Listener
 	if listener == nil {
 		return
 	}
 
-	utils.RemoveItem(listener, b.Interface)
+	b.QBpVarRef.Listener = utils.RemoveItemAny(listener, b)
 }
 
 type iVarSet struct {

@@ -102,8 +102,8 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 			c.Input.Out = nil
 		}
 
-		c.Output.In = utils.RemoveItem[*Cable](c.Output.In, c)
-		c.Input.In = utils.RemoveItem[*Cable](c.Input.In, c)
+		c.Output.In = utils.RemoveItem(c.Output.In, c)
+		c.Input.In = utils.RemoveItem(c.Input.In, c)
 
 		c.Connected = false
 		return
@@ -118,7 +118,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 	}
 
 	if c.Owner != nil && (!hasWhich || which == c.Owner) {
-		utils.RemoveItem[*Cable](c.Owner.Cables, c)
+		c.Owner.Cables = utils.RemoveItem(c.Owner.Cables, c)
 
 		if c.Connected {
 			temp := &CableEvent{
@@ -143,7 +143,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 	}
 
 	if c.Target != nil && c.Connected && (!hasWhich || which == c.Target) {
-		utils.RemoveItem[*Cable](c.Target.Cables, c)
+		c.Target.Cables = utils.RemoveItem(c.Target.Cables, c)
 
 		temp := &CableEvent{
 			Cable:  c,
