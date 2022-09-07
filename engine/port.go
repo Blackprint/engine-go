@@ -15,6 +15,7 @@ type PortStructTemplate struct {
 type Port struct {
 	CustomEvent
 	Name        string
+	Name_       *RefPortName // ToDo: fill alternate name, search in engine-php _name for hints
 	Type        reflect.Kind
 	Types       []reflect.Kind
 	Cables      []*Cable
@@ -22,7 +23,7 @@ type Port struct {
 	Iface       any
 	Default     any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Value       any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
-	Func        func(any)
+	Func        func(*Port)
 	Sync        bool
 	Feature     int
 	Struct      map[string]PortStructTemplate
@@ -38,6 +39,10 @@ type Port struct {
 	QStructSplitted bool
 }
 
+type RefPortName struct {
+	Name string
+}
+
 const (
 	PortInput = iota + 1
 	PortOutput
@@ -47,10 +52,10 @@ const (
 const (
 	PortTypeArrayOf = iota + 1
 	PortTypeDefault
-	PortTypeSwitch
 	PortTypeTrigger
 	PortTypeUnion
-	PortTypeValidator
+	PortTypeStructOf
+	PortTypeRoute
 )
 
 // Port feature
@@ -185,7 +190,9 @@ func (gs *PortOutputGetterSetter) Set(val any) {
 	// fmt.Printf("3. %s = %s\n", port.Name, val)
 
 	port.Value = val
-	port.Emit("value", port)
+	port.Emit("value", &PortSelfEvent{
+		Port: port,
+	})
 	port.sync()
 }
 
@@ -247,6 +254,8 @@ func (port *Port) sync() {
 			})
 		}
 
-		target.Emit("value", port)
+		target.Emit("value", &PortSelfEvent{
+			Port: port,
+		})
 	}
 }
