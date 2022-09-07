@@ -24,7 +24,7 @@ func (iface *ButtonSimpleIFace) Clicked(ev any) {
 
 // This will be called from example.go
 func RegisterButton() {
-	ButtonSimpleOutput := engine.NodePort{
+	ButtonSimpleOutput := engine.NodePortTemplate{
 		"Clicked": types.Function,
 	}
 

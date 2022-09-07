@@ -76,7 +76,7 @@ func RegisterLogger() {
 				Instance: instance,
 
 				// Node's Input Port Template
-				TInput: engine.NodePort{
+				TInput: engine.NodePortTemplate{
 					"Any": port.ArrayOf(reflect.Interface), // nil => Any
 				},
 			},

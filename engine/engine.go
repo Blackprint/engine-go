@@ -4,22 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 
 	"github.com/blackprint/engine-go/utils"
 )
 
-type NodePort map[string]any
+var Event = &CustomEvent{}
+
+type NodePortTemplate map[string]any
 
 type Instance struct {
-	IFace     map[string]any // Storing with node id if exist
-	IFaceList map[int]any    // Storing with node index
+	CustomEvent
+	Iface     map[string]any // Storing with node id if exist
+	IfaceList map[int]any    // Storing with node index
 	settings  map[string]bool
+	QFuncMain *bpFuncMain
 }
 
 func New() *Instance {
 	return &Instance{
-		IFace:     map[string]any{},
-		IFaceList: map[int]any{},
+		Iface:     map[string]any{},
+		IfaceList: map[int]any{},
 		settings:  map[string]bool{},
 	}
 }
@@ -60,9 +65,21 @@ type nodePortTarget struct {
 	Name string `json:"name"`
 }
 
-type GetterSetter interface {
+type getterSetter interface {
 	Set(val any)
 	Get() any
+}
+
+type GetterSetter struct {
+	Value any
+}
+
+func (b *GetterSetter) Get() any {
+	return b.Value
+}
+
+func (b *GetterSetter) Set(Value any) {
+	b.Value = Value
 }
 
 func (instance *Instance) ImportJSON(str []byte) (err error) {
@@ -73,7 +90,7 @@ func (instance *Instance) ImportJSON(str []byte) (err error) {
 		return
 	}
 
-	ifaceList := instance.IFaceList
+	ifaceList := instance.IfaceList
 	var nodes []any
 
 	// Prepare all ifaces based on the namespace
@@ -132,8 +149,8 @@ func (instance *Instance) ImportJSON(str []byte) (err error) {
 						// <- For Debugging
 
 						cable := NewCable(linkPortA, linkPortB)
-						linkPortA.Cables = append(linkPortA.Cables, &cable)
-						linkPortB.Cables = append(linkPortB.Cables, &cable)
+						linkPortA.Cables = append(linkPortA.Cables, cable)
+						linkPortB.Cables = append(linkPortB.Cables, cable)
 
 						cable.QConnected()
 						// fmt.Println(cable.String())
@@ -161,7 +178,7 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 }
 
 func (instance *Instance) GetNode(id any) any {
-	for _, val := range instance.IFaceList {
+	for _, val := range instance.IfaceList {
 		temp := reflect.ValueOf(val).Elem()
 		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
 			return utils.GetProperty(val, "Node")
@@ -173,7 +190,7 @@ func (instance *Instance) GetNode(id any) any {
 func (instance *Instance) GetNodes(namespace string) []any {
 	var got []any // any = extends 'engine.Node'
 
-	for _, val := range instance.IFaceList {
+	for _, val := range instance.IfaceList {
 		if utils.GetProperty(val, "Namespace").(string) == namespace {
 			got = append(got, utils.GetProperty(val, "Node"))
 		}
@@ -195,7 +212,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	}
 
 	// *iface: extends engine.Interface
-	iface := utils.GetProperty(node, "IFace")
+	iface := utils.GetProperty(node, "Iface")
 	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
 		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
 	}
@@ -218,11 +235,11 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	if options.Id != "" {
 		utils.SetProperty(iface, "Id", options.Id)
-		instance.IFace[options.Id] = iface
+		instance.Iface[options.Id] = iface
 	}
 
 	utils.SetProperty(iface, "I", options.I)
-	instance.IFaceList[options.I] = iface
+	instance.IfaceList[options.I] = iface
 
 	utils.SetProperty(iface, "Importing", false)
 	utils.CallFunction(node, "Imported", utils.EmptyArgs)
@@ -235,6 +252,22 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	utils.CallFunction(iface, "Init", utils.EmptyArgs)
 
 	return iface, nodes
+}
+
+var createBPVariableRegx = regexp.MustCompile(`[` + "`" + `~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+`)
+
+func (instance *Instance) CreateVariable(id string) *BPVariable {
+	return &BPVariable{
+		Id:    id,
+		Title: id,
+		Type:  0, // Type not set
+	}
+
+	// The type need to be defined dynamically on first cable connect
+}
+
+func (instance *Instance) QLog(event NodeLog) {
+	fmt.Println(utils.GetProperty(event.Iface, "Title").(string) + "> " + event.Message)
 }
 
 // Currently only one level

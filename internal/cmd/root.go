@@ -6,6 +6,6 @@ var (
 	RootCmd = &cobra.Command{
 		Use:   "engine-go",
 		Short: "engine-go for Blackprint",
-		Long:  "engine-go is Blackprint engine",
+		Long:  "engine-go is Blackprint Engine for Golang",
 	}
 )

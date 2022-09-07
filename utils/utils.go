@@ -43,3 +43,35 @@ func CallFieldFunction(obj any, key string, val *[]reflect.Value) any {
 func HasProperty(obj any, key string) bool {
 	return reflect.ValueOf(obj).Elem().FieldByName(key).IsValid()
 }
+
+// https://stackoverflow.com/a/71184501/6563200
+func IndexOf[T comparable](collection []T, el T) int {
+	for i, x := range collection {
+		if x == el {
+			return i
+		}
+	}
+	return -1
+}
+
+func Contains[T comparable](collection []T, el T) bool {
+	for _, x := range collection {
+		if x == el {
+			return true
+		}
+	}
+	return false
+}
+
+func RemoveItem[T comparable](collection []T, el T) []T {
+	i := IndexOf(collection, el)
+	if i == -1 {
+		return collection
+	}
+
+	return append(collection[:i], collection[i+1:]...)
+}
+
+func RemoveItemAtIndex[T comparable](collection []T, i int) []T {
+	return append(collection[:i], collection[i+1:]...)
+}

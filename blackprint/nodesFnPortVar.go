@@ -1,0 +1,5 @@
+package blackprint
+
+func registerBpPortVarNode() {
+
+}

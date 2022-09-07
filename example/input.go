@@ -15,7 +15,7 @@ type InputSimple struct {
 
 // Bring value from imported iface to node output
 func (node *InputSimple) Imported() {
-	val := node.IFace.(*InputSimpleIFace).Data["value"].Get()
+	val := node.Iface.(*InputSimpleIFace).Data["value"].Get()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
 	}
@@ -43,13 +43,13 @@ func (iface *InputSimpleIFace) Changed(val any) {
 }
 
 type MyData struct {
-	IFace any
+	Iface any
 	val   any
 }
 
 func (gs *MyData) Set(val any) {
 	gs.val = val
-	gs.IFace.(*InputSimpleIFace).Changed(gs.val)
+	gs.Iface.(*InputSimpleIFace).Changed(gs.val)
 }
 
 func (gs *MyData) Get() any {
@@ -64,7 +64,7 @@ func RegisterInput() {
 				Instance: instance,
 
 				// Node's Output Port Template
-				TOutput: engine.NodePort{
+				TOutput: engine.NodePortTemplate{
 					"Changed": types.Function,
 					"Value":   types.String,
 				},

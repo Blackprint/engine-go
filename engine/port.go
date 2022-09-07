@@ -6,24 +6,42 @@ import (
 	"github.com/blackprint/engine-go/utils"
 )
 
+type PortStructTemplate struct {
+	Type   any
+	Field  string
+	Handle func(any) any
+}
+
 type Port struct {
-	customEvent
-	Name    string
-	Type    reflect.Kind
-	Cables  []*Cable
-	Source  int
-	Iface   *Interface
-	Default any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
-	Value   any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
-	Func    func(any)
-	Sync    bool
-	Feature int
+	CustomEvent
+	Name        string
+	Type        reflect.Kind
+	Types       []reflect.Kind
+	Cables      []*Cable
+	Source      int
+	Iface       any
+	Default     any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
+	Value       any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
+	Func        func(any)
+	Sync        bool
+	Feature     int
+	Struct      map[string]PortStructTemplate
+	Splitted    bool
+	AllowResync bool
+
+	// Only in Golang we need to do this '-'
+	RoutePort *RoutePort
+
+	// Internal/Private property
+	QCache          any
+	QParent         *Port
+	QStructSplitted bool
 }
 
 const (
 	PortInput = iota + 1
 	PortOutput
-	PortProperty
+	// PortProperty
 )
 
 const (
@@ -45,7 +63,7 @@ type PortFeature struct {
 }
 
 type PortInputGetterSetter struct {
-	GetterSetter
+	getterSetter
 	port *Port
 }
 
@@ -152,7 +170,7 @@ func (gs *PortInputGetterSetter) Get() any {
 }
 
 type PortOutputGetterSetter struct {
-	GetterSetter
+	getterSetter
 	port *Port
 }
 
@@ -167,7 +185,7 @@ func (gs *PortOutputGetterSetter) Set(val any) {
 	// fmt.Printf("3. %s = %s\n", port.Name, val)
 
 	port.Value = val
-	port.QTrigger("value", port)
+	port.Emit("value", port)
 	port.sync()
 }
 
@@ -206,7 +224,7 @@ func (gs *PortOutputGetterSetter) Get() any {
 	return port.Value
 }
 
-func (port *Port) CreateLinker() GetterSetter {
+func (port *Port) CreateLinker() getterSetter {
 	if port.Source == PortInput {
 		return &PortInputGetterSetter{port: port}
 	}
@@ -229,6 +247,6 @@ func (port *Port) sync() {
 			})
 		}
 
-		target.QTrigger("value", port)
+		target.Emit("value", port)
 	}
 }

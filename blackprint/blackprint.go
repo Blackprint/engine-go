@@ -19,3 +19,6 @@ func RegisterInterface(namespace string, constructor func(any) any) {
 
 	engine.QInterfaceList[namespace] = constructor
 }
+
+var Event = engine.Event
+var Environment = engine.QEnvironment

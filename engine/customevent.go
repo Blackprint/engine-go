@@ -2,6 +2,8 @@ package engine
 
 import (
 	"strings"
+
+	"github.com/blackprint/engine-go/utils"
 )
 
 type eventObj struct {
@@ -9,16 +11,16 @@ type eventObj struct {
 	once     bool
 }
 
-type customEvent struct {
+type CustomEvent struct {
 	events map[string][]*eventObj
 }
 
-func (e *customEvent) listen(evName string, callback any, once bool) {
+func (e *CustomEvent) listen(evName string, callback any, once bool) {
 	if e.events == nil {
 		e.events = map[string][]*eventObj{}
 	}
 
-	evs := strings.Split(evName, ",")
+	evs := strings.Split(evName, " ")
 
 	for _, name := range evs {
 		list := e.events[name]
@@ -33,7 +35,7 @@ func (e *customEvent) listen(evName string, callback any, once bool) {
 		}
 
 		if exist {
-			break
+			continue
 		}
 
 		e.events[name] = append(list, &eventObj{
@@ -43,43 +45,47 @@ func (e *customEvent) listen(evName string, callback any, once bool) {
 	}
 }
 
-func (e *customEvent) On(evName string, callback any) {
+func (e *CustomEvent) On(evName string, callback any) {
 	e.listen(evName, callback, false)
 }
 
-func (e *customEvent) Once(evName string, callback any) {
+func (e *CustomEvent) Once(evName string, callback any) {
 	e.listen(evName, callback, true)
 }
 
-func (e *customEvent) Off(evName string, callback any) {
+func (e *CustomEvent) Off(evName string, callback any) {
 	if e.events == nil {
 		return
 	}
 
-	evs := strings.Split(evName, ",")
+	evs := strings.Split(evName, " ")
 	for _, name := range evs {
 		if callback == nil {
 			e.events[name] = []*eventObj{}
-			break
+			continue
 		}
 
 		list := e.events[name]
+		if list == nil {
+			continue
+		}
+
 		for i, cb := range list {
 			if cb.callback == callback {
-				e.events[name] = append(list[:i], list[i+1:]...)
-				break
+				e.events[name] = utils.RemoveItemAtIndex(list, i)
+				continue
 			}
 		}
 	}
 }
 
-func (e *customEvent) QTrigger(evName string, data any) {
+func (e *CustomEvent) Emit(evName string, data any) {
 	list := e.events[evName]
 	for i, cb := range list {
 		cb.callback.(func(any))(data)
 
 		if cb.once {
-			e.events[evName] = append(list[:i], list[i+1:]...)
+			e.events[evName] = utils.RemoveItemAtIndex(list, i)
 		}
 	}
 }

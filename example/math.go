@@ -44,14 +44,14 @@ func RegisterMathMultiply() {
 				Instance: instance,
 
 				// Node's Input Port Template
-				TInput: engine.NodePort{
+				TInput: engine.NodePortTemplate{
 					"Exec": port.Trigger(func(port *engine.Port) {
 						node.Output["Result"].Set(node.Multiply())
 						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"].Get())
 					}),
 					"A": types.Int,
 					"B": port.Validator(types.Int, func(val any) any {
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.IFace.(*engine.Interface).Title, val)
+						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(*engine.Interface).Title, val)
 
 						// Convert string to number
 						if reflect.ValueOf(val).Kind() == reflect.String {
@@ -64,7 +64,7 @@ func RegisterMathMultiply() {
 				},
 
 				// Node's Output Port Template
-				TOutput: engine.NodePort{
+				TOutput: engine.NodePortTemplate{
 					"Result": types.Int,
 				},
 			},
@@ -114,7 +114,7 @@ func RegisterMathRandom() {
 				Instance: instance,
 
 				// Node's Input Port Template
-				TInput: engine.NodePort{
+				TInput: engine.NodePortTemplate{
 					"Re-seed": port.Trigger(func(port *engine.Port) {
 						node.Executed = true
 						byt := make([]byte, 2)
@@ -124,7 +124,7 @@ func RegisterMathRandom() {
 				},
 
 				// Node's Output Port Template
-				TOutput: engine.NodePort{
+				TOutput: engine.NodePortTemplate{
 					"Out": types.Int,
 				},
 			},
