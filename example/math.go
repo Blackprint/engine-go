@@ -4,12 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"log"
-	"reflect"
-	"strconv"
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 )
 
@@ -45,22 +42,12 @@ func RegisterMathMultiply() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePortTemplate{
-					"Exec": port.Trigger(func(port *engine.Port) {
+					"Exec": engine.Ports.Trigger(func(port *engine.Port) {
 						node.Output["Result"].Set(node.Multiply())
 						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"].Get())
 					}),
 					"A": types.Int,
-					"B": port.Validator(types.Int, func(val any) any {
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33m%s - Port B got input: %d\x1b[0m\n", node.Iface.(*engine.Interface).Title, val)
-
-						// Convert string to number
-						if reflect.ValueOf(val).Kind() == reflect.String {
-							num, _ := strconv.Atoi(val.(string))
-							return num
-						}
-
-						return val
-					}),
+					"B": types.Any,
 				},
 
 				// Node's Output Port Template
@@ -115,7 +102,7 @@ func RegisterMathRandom() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePortTemplate{
-					"Re-seed": port.Trigger(func(port *engine.Port) {
+					"Re-seed": engine.Ports.Trigger(func(port *engine.Port) {
 						node.Executed = true
 						byt := make([]byte, 2)
 						rand.Read(byt)

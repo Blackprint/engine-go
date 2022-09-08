@@ -109,6 +109,7 @@ func (iface *Interface) QCreatePort(which string, name string, config_ any) *Por
 	var feature int
 
 	var def any
+	var qfunc func(*Port)
 	if reflect.TypeOf(config_) == reflectKind {
 		type_ = config_.(reflect.Kind)
 
@@ -135,7 +136,7 @@ func (iface *Interface) QCreatePort(which string, name string, config_ any) *Por
 		feature = config.Id
 
 		if feature == PortTypeTrigger {
-			def = config.Func
+			qfunc = config.Func
 			type_ = types.Function
 		} else if feature == PortTypeArrayOf {
 			if type_ != types.Any {
@@ -160,15 +161,19 @@ func (iface *Interface) QCreatePort(which string, name string, config_ any) *Por
 	// 	source = PortProperty
 	// }
 
-	return &Port{
-		Name:    name,
-		Type:    type_,
-		Types:   types_,
-		Default: def,
-		Source:  source,
-		Iface:   iface,
-		Feature: feature,
+	port := &Port{
+		Name:     name,
+		Type:     type_,
+		Types:    types_,
+		Default:  def,
+		QFunc:    qfunc,
+		Source:   source,
+		Iface:    iface,
+		Feature:  feature,
+		QFeature: config,
 	}
+
+	return port
 }
 
 func (iface *Interface) QInitPortSwitches(portSwitches map[string]int) {

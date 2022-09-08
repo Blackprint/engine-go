@@ -7,7 +7,6 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/port"
 )
 
 // This will be called from example.go
@@ -77,7 +76,7 @@ func RegisterLogger() {
 
 				// Node's Input Port Template
 				TInput: engine.NodePortTemplate{
-					"Any": port.ArrayOf(reflect.Interface), // nil => Any
+					"Any": engine.Ports.ArrayOf(reflect.Interface), // nil => Any
 				},
 			},
 		}

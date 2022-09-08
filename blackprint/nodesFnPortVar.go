@@ -1,11 +1,8 @@
 package blackprint
 
 import (
-	"strconv"
-
 	"github.com/blackprint/engine-go/engine"
 	"github.com/blackprint/engine-go/engine/nodes"
-	portTypes "github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 )
 
@@ -238,30 +235,16 @@ func (f *fnVarOutputIface) Imported(data map[string]any) {
 	}
 }
 
-func getFnPortType(port *engine.Port, which string, parentNode any, ref *engine.ReferencesShortcut) any {
+func getFnPortType(port *engine.Port, which string, parentNode any, ref *engine.RefPortName) any {
 	if port.Feature == engine.PortTypeTrigger {
 		if which == "input" { // Function Input (has output port inside, and input port on main node)
 			return types.Function
 		} else {
-			return types.Function
+			return engine.Ports.Trigger(parentNode.Output[ref.Name].CallAll)
 		}
 	} else {
 		if port.Feature != 0 {
-			if port.Feature == engine.PortTypeArrayOf {
-				return portTypes.ArrayOf(port.Type)
-			} else if port.Feature == engine.PortTypeDefault {
-				return portTypes.Default(port.Type, port.Default)
-			} else if port.Feature == engine.PortTypeTrigger {
-				return portTypes.Trigger(port.Func)
-			} else if port.Feature == engine.PortTypeUnion {
-				return portTypes.Union(port.Types)
-			} else if port.Feature == engine.PortTypeStructOf {
-				return portTypes.StructOf(port.Type, port.Struct)
-			} else if port.Feature == engine.PortTypeRoute {
-				return portTypes.Route()
-			} else {
-				panic("Port feature was not found for: " + strconv.Itoa(port.Feature))
-			}
+			return port.QGetPortFeature()
 		} else {
 			return port.Type
 		}

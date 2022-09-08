@@ -382,7 +382,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	// *iface: extends engine.Interface
 	iface := utils.GetProperty(node, "Iface")
 	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
-		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
+		panic(namespace + ": Node interface was not found, do you forget to call node.SetInterface() ?")
 	}
 
 	utils.SetProperty(iface, "Node", node)

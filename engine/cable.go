@@ -12,7 +12,8 @@ type Cable struct {
 	Target          *Port
 	Input           *Port
 	Output          *Port
-	Disabled        bool
+	Source          int
+	Disabled        int
 	IsRoute         bool
 	Connected       bool
 	QEvDisconnected bool
@@ -24,9 +25,7 @@ type CableEvent struct {
 	Target *Port
 }
 
-type PortSelfEvent struct {
-	Port *Port
-}
+type PortValueEvent = CableEvent
 
 func NewCable(owner *Port, target *Port) *Cable {
 	var input *Port
@@ -42,6 +41,7 @@ func NewCable(owner *Port, target *Port) *Cable {
 
 	return &Cable{
 		Type:   owner.Type,
+		Source: owner.Source,
 		Owner:  owner,
 		Target: target,
 		Input:  input,
@@ -72,7 +72,7 @@ func (c *Cable) QConnected() {
 		return
 	}
 
-	inputEv := &PortSelfEvent{
+	inputEv := &PortValueEvent{
 		Port: c.Output,
 	}
 	c.Input.Emit("value", inputEv)

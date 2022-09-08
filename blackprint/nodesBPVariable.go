@@ -6,7 +6,6 @@ import (
 
 	"github.com/blackprint/engine-go/engine"
 	"github.com/blackprint/engine-go/engine/nodes"
-	"github.com/blackprint/engine-go/port"
 	"github.com/blackprint/engine-go/types"
 	"github.com/blackprint/engine-go/utils"
 )
@@ -237,7 +236,7 @@ func (b *iVarGet) QReinitPort() *engine.Port {
 		utils.CallFunction(node, "CreatePort", &[]reflect.Value{
 			reflect.ValueOf("Input"),
 			reflect.ValueOf("Val"),
-			reflect.ValueOf(port.Trigger(func(p *engine.Port) {
+			reflect.ValueOf(engine.Ports.Trigger(func(p *engine.Port) {
 				temp.Emit("call", nil)
 			})),
 		})
