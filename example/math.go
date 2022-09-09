@@ -28,7 +28,7 @@ func (this *MathMultiple) Update(cable *engine.Cable) {
 }
 
 func init() {
-	Blackprint.RegisterNode("Example/Math/Multiply", &engine.NodeMetadata{
+	Blackprint.RegisterNode("Example/Math/Multiply", &engine.NodeRegister{
 		Input: engine.NodePortTemplate{
 			"Exec": engine.Ports.Trigger(func(port *engine.Port) {
 				port.Iface.Node.Output["Result"].Set(port.Iface.Node.Embed.(*MathMultiple).Multiply())
@@ -41,12 +41,9 @@ func init() {
 		Output: engine.NodePortTemplate{
 			"Result": types.Int,
 		},
-	},
-		func(instance *engine.Instance) *engine.Node {
-			node := &engine.Node{
-				Instance: instance,
-				Embed:    &MathMultiple{},
-			}
+
+		Constructor: func(node *engine.Node) {
+			node.Embed = &MathMultiple{}
 
 			iface := node.SetInterface()
 			iface.Title = "Multiply"
@@ -55,9 +52,8 @@ func init() {
 				ev := event.(engine.CableEvent)
 				log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
 			})
-
-			return node
-		})
+		},
+	})
 }
 
 // ============ MathRandom Node ============
@@ -83,7 +79,7 @@ func (this *MathRandom) Request(cable *engine.Cable) {
 }
 
 func init() {
-	Blackprint.RegisterNode("Example/Math/Random", &engine.NodeMetadata{
+	Blackprint.RegisterNode("Example/Math/Random", &engine.NodeRegister{
 		Input: engine.NodePortTemplate{
 			"Re-seed": engine.Ports.Trigger(func(port *engine.Port) {
 				node := port.Iface.Node
@@ -94,20 +90,15 @@ func init() {
 				node.Output["Out"].Set(int(binary.BigEndian.Uint16(byt[:])) % 100)
 			}),
 		},
-
 		Output: engine.NodePortTemplate{
 			"Out": types.Int,
 		},
-	},
-		func(instance *engine.Instance) *engine.Node {
-			node := &engine.Node{
-				Instance: instance,
-				Embed:    &MathRandom{},
-			}
+
+		Constructor: func(node *engine.Node) {
+			node.Embed = &MathRandom{}
 
 			iface := node.SetInterface()
 			iface.Title = "Random"
-
-			return node
-		})
+		},
+	})
 }

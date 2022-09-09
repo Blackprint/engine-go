@@ -242,15 +242,10 @@ func (b *iVarGet) QReinitPort() *Port {
 }
 
 func init() {
-	QNodeList["BP/Var/Set"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Input: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &bpVarSet{},
-			}
+	QNodeList["BP/Var/Set"] = &NodeRegister{
+		Input: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &bpVarSet{}
 
 			iface := node.SetInterface("BPIC/BP/Var/Set")
 
@@ -264,29 +259,21 @@ func init() {
 			iface.Embed.(*iVarSet).Type = "bp-var-set"
 			iface.QEnum = nodes.BPVarSet
 			iface.QDynamicPort = true
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Var/Get"] = func(node *Node) *Interface {
-		return &Interface{
-			Node: node,
-			Embed: &iVarGet{
+	QInterfaceList["BPIC/BP/Var/Set"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &iVarSet{
 				bpVarGetSet: &bpVarGetSet{},
-			},
-		}
+			}
+		},
 	}
 
-	QNodeList["BP/Var/Get"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Output: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &bpVarGet{},
-			}
+	QNodeList["BP/Var/Get"] = &NodeRegister{
+		Output: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &bpVarGet{}
 
 			iface := node.SetInterface("BPIC/BP/Var/Get")
 
@@ -300,17 +287,14 @@ func init() {
 			iface.Embed.(*iVarGet).Type = "bp-var-get"
 			iface.QEnum = nodes.BPVarGet
 			iface.QDynamicPort = true
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Var/Get"] = func(node *Node) *Interface {
-		return &Interface{
-			Node: node,
-			Embed: &iVarGet{
+	QInterfaceList["BPIC/BP/Var/Get"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &iVarGet{
 				bpVarGetSet: &bpVarGetSet{},
-			},
-		}
+			}
+		},
 	}
 }

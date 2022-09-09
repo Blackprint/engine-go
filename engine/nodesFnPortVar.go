@@ -252,15 +252,10 @@ func getFnPortType(port *Port, which string, parentNode *Interface, ref *RefPort
 }
 
 func init() {
-	QNodeList["BP/FnVar/Input"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Output: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &fnVarInput{},
-			}
+	QNodeList["BP/FnVar/Input"] = &NodeRegister{
+		Output: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &fnVarInput{}
 
 			iface := node.SetInterface("BPIC/BP/FnVar/Input")
 
@@ -273,28 +268,21 @@ func init() {
 			iface.Embed.(*fnVarInputIface).Type = "bp-fnvar-input"
 			iface.QEnum = nodes.BPFnVarInput
 			iface.QDynamicPort = true
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/FnVar/Input"] = func(node *Node) *Interface {
-		return &Interface{
-			Embed: &fnVarInputIface{
+	QInterfaceList["BPIC/BP/FnVar/Input"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &fnVarInputIface{
 				bpFnVarInOut: &bpFnVarInOut{},
-			},
-		}
+			}
+		},
 	}
 
-	QNodeList["BP/FnVar/Output"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Input: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &fnVarOutput{},
-			}
+	QNodeList["BP/FnVar/Output"] = &NodeRegister{
+		Input: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &fnVarOutput{}
 
 			iface := node.SetInterface("BPIC/BP/FnVar/Output")
 
@@ -307,16 +295,14 @@ func init() {
 			iface.Embed.(*fnVarOutputIface).Type = "bp-fnvar-output"
 			iface.QEnum = nodes.BPFnVarOutput
 			iface.QDynamicPort = true
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/FnVar/Output"] = func(node *Node) *Interface {
-		return &Interface{
-			Embed: &fnVarOutputIface{
+	QInterfaceList["BPIC/BP/FnVar/Output"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &fnVarOutputIface{
 				bpFnVarInOut: &bpFnVarInOut{},
-			},
-		}
+			}
+		},
 	}
 }

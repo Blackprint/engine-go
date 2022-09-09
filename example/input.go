@@ -58,33 +58,26 @@ func (gs *MyData) Get() any {
 
 // This will be called from example.go
 func init() {
-	Blackprint.RegisterNode("Example/Input/Simple", &engine.NodeMetadata{
+	Blackprint.RegisterNode("Example/Input/Simple", &engine.NodeRegister{
 		Output: engine.NodePortTemplate{
 			"Changed": types.Function,
 			"Value":   types.String,
 		},
-	},
-		func(instance *engine.Instance) *engine.Node {
-			node := &engine.Node{
-				Instance: instance,
-				Embed:    &InputSimple{},
-			}
+
+		Constructor: func(node *engine.Node) {
+			node.Embed = &InputSimple{}
 
 			iface := node.SetInterface("BPIC/Example/Input")
 			iface.Title = "Input"
+		},
+	})
 
-			return node
-		})
-
-	Blackprint.RegisterInterface("BPIC/Example/Input",
-		func(node *engine.Node) *engine.Interface {
-			iface := &engine.Interface{
-				Data: engine.InterfaceData{
-					"value": &MyData{Value: "..."},
-				},
-				Embed: &InputSimpleIFace{},
+	Blackprint.RegisterInterface("BPIC/Example/Input", &engine.InterfaceRegister{
+		Constructor: func(iface *engine.Interface) {
+			iface.Embed = &InputSimpleIFace{}
+			iface.Data = engine.InterfaceData{
+				"value": &MyData{Value: "..."},
 			}
-
-			return iface
-		})
+		},
+	})
 }

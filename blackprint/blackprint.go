@@ -7,20 +7,17 @@ import (
 )
 
 // The constructor must return pointer (ex: &Node{})
-func RegisterNode(namespace string, meta *engine.NodeMetadata, constructor engine.NodeConstructor) {
-	engine.QNodeList[namespace] = &engine.QNodeRegister{
-		Metadata:    meta,
-		Constructor: constructor,
-	}
+func RegisterNode(namespace string, meta *engine.NodeRegister) {
+	engine.QNodeList[namespace] = meta
 }
 
 // The constructor must return pointer (ex: &any)
-func RegisterInterface(namespace string, constructor engine.InterfaceConstructor) {
+func RegisterInterface(namespace string, meta *engine.InterfaceRegister) {
 	if strings.HasPrefix(namespace, "BPIC/") == false {
 		panic(namespace + ": The first parameter of 'RegisterInterface' must be started with BPIC to avoid name conflict. Please name the interface similar with 'templatePrefix' for your module that you have set on 'blackprint.config.js'.")
 	}
 
-	engine.QInterfaceList[namespace] = constructor
+	engine.QInterfaceList[namespace] = meta
 }
 
 var Event = engine.Event

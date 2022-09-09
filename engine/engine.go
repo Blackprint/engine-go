@@ -104,11 +104,6 @@ type ImportOptions struct {
 	AppendMode bool
 }
 
-type QNodeRegister struct {
-	Metadata    *NodeMetadata
-	Constructor NodeConstructor
-}
-
 func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inserted []*Interface, err error) {
 	var data SingleInstanceJSON
 
@@ -384,7 +379,8 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 			panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
 		}
 	} else {
-		node = func_.Constructor(instance) // func_ from registerNode(namespace, func_)
+		node = &Node{Instance: instance}
+		func_.Constructor(node)
 	}
 
 	// Disable data flow on any node ports
@@ -407,7 +403,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	// Create the linker between the nodes and the iface
 	if isFuncNode == false {
-		iface.QPrepare(func_.Metadata)
+		iface.QPrepare(func_)
 	}
 
 	if options.Id != "" {
@@ -524,7 +520,7 @@ func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
 		Output:       NodePortTemplate{},
 	}
 
-	meta := &NodeMetadata{
+	meta := &NodeRegister{
 		Input:  temp.Input,
 		Output: temp.Output,
 	}

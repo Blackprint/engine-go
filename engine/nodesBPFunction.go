@@ -538,15 +538,10 @@ func (b *QBpFnInOut) deletePort(name string) {
 }
 
 func init() {
-	QNodeList["BP/Fn/Input"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Output: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &QNodeInput{},
-			}
+	QNodeList["BP/Fn/Input"] = &NodeRegister{
+		Output: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &QNodeInput{}
 
 			iface := node.SetInterface("BPIC/BP/Fn/Input")
 			iface.QEnum = nodes.BPFnInput
@@ -554,29 +549,21 @@ func init() {
 
 			iface.Title = "Input"
 			iface.Embed.(*QBpFnInOut).Type = "bp-fn-input"
-			iface.QFuncMain = i.QFuncMain
-			i.QFuncMain.QProxyInput = node
-
-			return node
+			iface.QFuncMain = node.Instance.QFuncMain
+			iface.QFuncMain.QProxyInput = node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Fn/Input"] = func(node *Node) *Interface {
-		return &Interface{
-			Node:  node,
-			Embed: &QBpFnInOut{},
-		}
+	QInterfaceList["BPIC/BP/Fn/Input"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &QBpFnInOut{}
+		},
 	}
 
-	QNodeList["BP/Fn/Output"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Input: NodePortTemplate{},
-		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &bpVarGet{},
-			}
+	QNodeList["BP/Fn/Output"] = &NodeRegister{
+		Input: NodePortTemplate{},
+		Constructor: func(node *Node) {
+			node.Embed = &bpVarGet{}
 
 			iface := node.SetInterface("BPIC/BP/Fn/Output")
 			iface.QEnum = nodes.BPFnOutput
@@ -584,24 +571,20 @@ func init() {
 
 			iface.Title = "Output"
 			iface.Embed.(*QBpFnInOut).Type = "bp-fn-output"
-			iface.QFuncMain = i.QFuncMain
-			i.QFuncMain.QProxyOutput = node
-
-			return node
+			iface.QFuncMain = node.Instance.QFuncMain
+			iface.QFuncMain.QProxyOutput = node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Fn/Output"] = func(node *Node) *Interface {
-		return &Interface{
-			Node:  node,
-			Embed: &QBpFnInOut{},
-		}
+	QInterfaceList["BPIC/BP/Fn/Output"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &QBpFnInOut{}
+		},
 	}
 
-	QInterfaceList["BPIC/BP/Fn/Main"] = func(node *Node) *Interface {
-		return &Interface{
-			Node:  node,
-			Embed: &FnMain{},
-		}
+	QInterfaceList["BPIC/BP/Fn/Main"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &FnMain{}
+		},
 	}
 }

@@ -23,25 +23,21 @@ func (iface *ButtonSimpleIFace) Clicked(ev any) {
 
 // This will be called from example.go
 func init() {
-	Blackprint.RegisterNode("Example/Button/Simple", &engine.NodeMetadata{
+	Blackprint.RegisterNode("Example/Button/Simple", &engine.NodeRegister{
 		Output: engine.NodePortTemplate{},
 		Input:  engine.NodePortTemplate{},
-	},
-		func(instance *engine.Instance) *engine.Node {
-			node := &engine.Node{
-				Embed: &ButtonSimple{},
-			}
+
+		Constructor: func(node *engine.Node) {
+			node.Embed = &ButtonSimple{}
 
 			iface := node.SetInterface("BPIC/Example/Button")
 			iface.Title = "Button"
+		},
+	})
 
-			return node
-		})
-
-	Blackprint.RegisterInterface("BPIC/Example/Button",
-		func(node *engine.Node) *engine.Interface {
-			return &engine.Interface{
-				Embed: &ButtonSimpleIFace{},
-			}
-		})
+	Blackprint.RegisterInterface("BPIC/Example/Button", &engine.InterfaceRegister{
+		Constructor: func(iface *engine.Interface) {
+			iface.Embed = &ButtonSimpleIFace{}
+		},
+	})
 }

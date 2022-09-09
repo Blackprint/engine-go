@@ -69,17 +69,12 @@ type iEnvSet struct {
 }
 
 func init() {
-	QNodeList["BP/Env/Get"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Output: NodePortTemplate{
-				"Val": types.String,
-			},
+	QNodeList["BP/Env/Get"] = &NodeRegister{
+		Output: NodePortTemplate{
+			"Val": types.String,
 		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &bpEnvGet{},
-			}
+		Constructor: func(node *Node) {
+			node.Embed = &bpEnvGet{}
 
 			iface := node.SetInterface("BPIC/BP/Env/Get")
 
@@ -91,30 +86,23 @@ func init() {
 			iface.Title = "EnvGet"
 			iface.Embed.(*iEnvGet).Type = "bp-env-get"
 			iface.QEnum = nodes.BPEnvGet
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Env/Get"] = func(node *Node) *Interface {
-		return &Interface{
-			Embed: &iEnvGet{
+	QInterfaceList["BPIC/BP/Env/Get"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &iEnvGet{
 				bpEnvGetSet: &bpEnvGetSet{},
-			},
-		}
+			}
+		},
 	}
 
-	QNodeList["BP/Env/Set"] = &QNodeRegister{
-		Metadata: &NodeMetadata{
-			Input: NodePortTemplate{
-				"Val": types.String,
-			},
+	QNodeList["BP/Env/Set"] = &NodeRegister{
+		Input: NodePortTemplate{
+			"Val": types.String,
 		},
-		Constructor: func(i *Instance) *Node {
-			node := &Node{
-				Instance: i,
-				Embed:    &bpEnvSet{},
-			}
+		Constructor: func(node *Node) {
+			node.Embed = &bpEnvSet{}
 
 			iface := node.SetInterface("BPIC/BP/Env/Set")
 
@@ -126,16 +114,14 @@ func init() {
 			iface.Title = "EnvSet"
 			iface.Embed.(*iEnvSet).Type = "bp-env-set"
 			iface.QEnum = nodes.BPEnvSet
-
-			return node
 		},
 	}
 
-	QInterfaceList["BPIC/BP/Env/Set"] = func(node *Node) *Interface {
-		return &Interface{
-			Embed: &iEnvSet{
+	QInterfaceList["BPIC/BP/Env/Set"] = &InterfaceRegister{
+		Constructor: func(iface *Interface) {
+			iface.Embed = &iEnvSet{
 				bpEnvGetSet: &bpEnvGetSet{},
-			},
-		}
+			}
+		},
 	}
 }

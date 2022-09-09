@@ -77,7 +77,7 @@ func (iface *Interface) QBpFnInit() {}
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
-func (iface *Interface) QPrepare(meta *NodeMetadata) {
+func (iface *Interface) QPrepare(meta *NodeRegister) {
 	iface.CustomEvent = &CustomEvent{}
 	ref := &referencesShortcut{}
 

@@ -55,28 +55,33 @@ func (n *Node) Imported(d map[string]any)     { n.Embed.Imported(d) }
 func (n *Node) Destroy()                      { n.Embed.Destroy() }
 func (n *Node) SyncIn(id string, data ...any) { n.Embed.SyncIn(id, data) }
 
-type NodeMetadata struct {
+type NodeRegister struct {
 	// Port Template
 	Output NodePortTemplate
 	Input  NodePortTemplate
 	// Property *NodePortTemplate
+
+	Constructor NodeConstructor
 }
 
-type NodeConstructor func(*Instance) *Node
-type InterfaceConstructor func(*Node) *Interface
+type InterfaceRegister struct {
+	Constructor InterfaceConstructor
+}
+
+type NodeConstructor func(*Node)
+type InterfaceConstructor func(*Interface)
 
 // QNodeList = Private function, for internal library only
-var QNodeList = map[string]*QNodeRegister{}
+var QNodeList = map[string]*NodeRegister{}
 
 // QInterfaceList = Private function, for internal library only
-var QInterfaceList = map[string]InterfaceConstructor{}
+var QInterfaceList = map[string]*InterfaceRegister{}
 
-// This will return *pointer
 func (n *Node) SetInterface(namespace ...string) *Interface {
-	if len(namespace) == 0 {
-		// Default interface (BP/Default)
-		iface := &Interface{QInitialized: true, Importing: true}
+	iface := &Interface{QInitialized: true, Importing: true}
 
+	// Default interface (BP/Default)
+	if len(namespace) == 0 {
 		n.Iface = iface
 		return iface
 	}
@@ -87,11 +92,7 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 		panic("Node interface for '" + name + "' was not found, maybe .registerInterface() haven't being called?")
 	}
 
-	iface := class(n)
-	if utils.IsPointer(iface) == false {
-		panic(".registerInterface() must return pointer")
-	}
-
+	class.Constructor(iface)
 	for _, val := range iface.Data {
 		utils.SetProperty(val, "Iface", iface)
 	}

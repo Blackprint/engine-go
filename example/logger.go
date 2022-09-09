@@ -65,25 +65,22 @@ func (iface *LoggerIFace) Log(val ...any) any {
 }
 
 func init() {
-	Blackprint.RegisterNode("Example/Display/Logger", &engine.NodeMetadata{
+	Blackprint.RegisterNode("Example/Display/Logger", &engine.NodeRegister{
 		Input: engine.NodePortTemplate{
 			"Any": engine.Ports.ArrayOf(types.Any), // nil => Any
 		},
-	},
-		func(instance *engine.Instance) *engine.Node {
-			node := &engine.Node{
-				Instance: instance,
-				Embed:    &LoggerNode{},
-			}
+
+		Constructor: func(node *engine.Node) {
+			node.Embed = &LoggerNode{}
 
 			iface := node.SetInterface("BPIC/Example/Display/Logger")
 			iface.Title = "Logger"
+		},
+	})
 
-			return node
-		})
-
-	Blackprint.RegisterInterface("BPIC/Example/Display/Logger",
-		func(node *engine.Node) *engine.Interface {
-			return &engine.Interface{Embed: &LoggerIFace{}}
-		})
+	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", &engine.InterfaceRegister{
+		Constructor: func(iface *engine.Interface) {
+			iface.Embed = &LoggerIFace{}
+		},
+	})
 }
