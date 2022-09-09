@@ -14,7 +14,7 @@ import (
 
 var Event = &CustomEvent{}
 
-type NodePortTemplate map[string]any
+type NodePortTemplate map[string]any // any = reflect.Kind | portFeature
 type Instance struct {
 	*CustomEvent
 	Iface        map[string]any // Storing with node id if exist
@@ -27,7 +27,8 @@ type Instance struct {
 	Functions map[string]*BPFunction
 	Ref       map[string]*ReferencesShortcut
 
-	QFuncMain // => *engine.Interface
+	QFuncMain     *BPFunction // => *engine.Interface
+	QFuncInstance *Instance
 }
 
 func New() *Instance {
@@ -115,7 +116,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 	}
 
 	// Do we need this?
-	// instance.Emit("json.importing", {appendMode: options.appendMode, raw: json});
+	// instance.Emit("json.importing", {appendMode: options.appendMode, raw: json})
 
 	ifaceList := instance.IfaceList
 	var metadata metadataValue
@@ -449,6 +450,8 @@ type varOptions struct {
 }
 
 func (instance *Instance) CreateVariable(id string, options any) *BPVariable {
+	id = createBPVariableRegx.ReplaceAllString(id, "_")
+
 	if old, exist := instance.Variables[id]; exist {
 		old.Destroy()
 		delete(instance.Variables, id)
@@ -468,27 +471,68 @@ func (instance *Instance) CreateVariable(id string, options any) *BPVariable {
 }
 
 type funcOptions struct {
-	Id          string   `json:"id"`
-	Title       string   `json:"title"`
-	Vars        []string `json:"vars"`
-	PrivateVars []string `json:"privateVars"`
-	Structure   nodeList `json:"structure"`
+	Id          string             `json:"id"`
+	Title       string             `json:"title"`
+	Vars        []string           `json:"vars"`
+	PrivateVars []string           `json:"privateVars"`
+	Structure   SingleInstanceJSON `json:"structure"`
 }
 
 func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
+	id = createBPVariableRegx.ReplaceAllString(id, "_")
+
 	if old, exist := instance.Functions[id]; exist {
 		old.Destroy()
 		delete(instance.Functions, id)
 	}
 
-	temp := &BPFunction{
-		Id:    id,
-		Title: id,
-		Type:  0, // Type not set
-	}
-	instance.Functions[id] = temp
-
 	options_ := options.(funcOptions)
+
+	// This will be updated if the function sketch was modified
+	structure := options_.Structure
+	if structure == nil {
+		structure = SingleInstanceJSON{
+			"BP/Fn/Input":  nodeList{nodeConfig{I: 0}},
+			"BP/Fn/Output": nodeList{nodeConfig{I: 1}},
+		}
+	}
+
+	title := id
+	temp := &BPFunction{
+		Id:           id,
+		Title:        title,
+		Type:         0, // Type not set
+		Structure:    structure,
+		RootInstance: instance,
+	}
+
+	uniqId := 0
+	temp.Node = func(ins *Instance) *Node {
+		ins.QFuncInstance = instance
+
+		node := &Node{
+			Instance:      ins,
+			QFuncInstance: temp,
+			TInput:        temp.Input,
+			TOutput:       temp.Output,
+		}
+
+		node.Embed = &BPFunctionNode{Node: node}
+
+		iface := node.SetInterface("BPIC/BP/Fn/Main")
+		iface.Type = "function"
+		iface.QEnum = nodes.BPFnMain
+		iface.Namespace = id
+		iface.Title = title
+
+		uniqId += 1
+		iface.uniqId = uniqId
+
+		iface.QPrepare()
+		return node
+	}
+
+	instance.Functions[id] = temp
 
 	for _, val := range options_.Vars {
 		temp.CreateVariable(val, bpFnVarOptions{

@@ -17,7 +17,7 @@ type PortStructTemplate struct {
 type Port struct {
 	CustomEvent
 	Name        string
-	Name_       *RefPortName // ToDo: fill alternate name, search in engine-php _name for hints
+	Name_       *RefPortName // For BPFunction only, ToDo: fill alternate name, search in engine-php _name for hints
 	Type        reflect.Kind
 	Types       []reflect.Kind
 	Cables      []*Cable
@@ -45,6 +45,8 @@ type Port struct {
 	OnConnect       func(*Cable, *Port)
 }
 
+/** For internal library use only */
+// For BPFunction only
 type RefPortName struct {
 	Name string
 }
@@ -242,7 +244,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	// Golang can't check by class instance or inheritance
 	// ==========================================
 	// ToDo: recheck why we need to check if the constructor is a function
-	// isInstance = true;
+	// isInstance = true
 	// if cable.Owner.Type != port.Type && cable.Owner.Type == types.Function && port.Type == types.Function {
 	// 	if cable.Owner.Source == PortOutput{
 	// 		isInstance = cable.Owner.Type instanceof port.Type
@@ -335,7 +337,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 
 	// Connect this cable into port's cable list
 	port.Cables = append(port.Cables, cable)
-	// cable.Connecting();
+	// cable.Connecting()
 	cable.QConnected()
 
 	return true

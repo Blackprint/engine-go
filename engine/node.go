@@ -9,20 +9,22 @@ import (
 type Node struct {
 	*CustomEvent
 	Instance     *Instance
-	Iface        any // any = extends *engine.Interface
+	Iface        *Interface
 	DisablePorts bool
 	Routes       *RoutePort
 
 	Ref *ReferencesShortcut
 
 	// Port Template
-	TOutput map[string]any // any = port.Type or *port.Feature
-	TInput  map[string]any // any = port.Type or *port.Feature
-	// TProperty map[string]any // any = port.Type or *port.Feature
+	TOutput *NodePortTemplate
+	TInput  *NodePortTemplate
+	// TProperty *NodePortTemplate
 
 	Output map[string]*PortOutputGetterSetter
 	Input  map[string]*PortInputGetterSetter
 	// Property map[string]getterSetter
+
+	QFuncInstance *BPFunction
 }
 
 type NodeHandler func(*Instance) any // any = extends *engine.Node
