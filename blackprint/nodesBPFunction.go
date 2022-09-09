@@ -10,7 +10,7 @@ import (
 )
 
 type nodeInput struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 
 func (n *nodeInput) imported(data any) {
@@ -29,7 +29,7 @@ func (n *nodeInput) request(cable *engine.Cable) {
 }
 
 type nodeOutput struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 
 func (n *nodeOutput) imported(data map[string]any) {
@@ -62,7 +62,7 @@ func (n *nodeOutput) update(cable *engine.Cable) {
 }
 
 type FnMain struct {
-	*engine.Interface
+	*engine.EmbedInterface
 	QImportOnce bool
 	QSave       func(any, string, bool)
 	QPortSw_    any
@@ -126,7 +126,7 @@ func (f *FnMain) RenamePort(which string, fromName string, toName string) {
 }
 
 type bpFnInOut struct {
-	*engine.Interface
+	*engine.EmbedInterface
 }
 
 type addPortRef struct {
@@ -256,66 +256,66 @@ func (b *bpFnInOut) deletePort(name string) {
 }
 
 func init() {
-	RegisterNode("BP/Fn/Input", func(i *engine.Instance) any {
-		node := &nodeInput{
-			Node: &engine.Node{
+	RegisterNode("BP/Fn/Input",
+		func(i *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: i,
-			},
-		}
+				Embed:    &nodeInput{},
+			}
 
-		iface := node.SetInterface("BPIC/BP/Fn/Input").(*fnInput)
-		iface.QEnum = nodes.BPFnInput
-		iface.QProxyInput = true // Port is initialized dynamically
-		iface.QDynamicPort = true
+			iface := node.SetInterface("BPIC/BP/Fn/Input")
+			iface.QEnum = nodes.BPFnInput
+			iface.QProxyInput = true // Port is initialized dynamically
+			iface.QDynamicPort = true
 
-		iface.Title = "Input"
-		iface.Type = "bp-fn-input"
-		iface.QFuncMain = i.QFuncMain
-		i.QFuncMain.QProxyInput = node
+			iface.Title = "Input"
+			iface.(*fnInput).Type = "bp-fn-input"
+			iface.QFuncMain = i.QFuncMain
+			i.QFuncMain.QProxyInput = node
 
-		return node
-	})
+			return node
+		})
 
-	RegisterInterface("BPIC/BP/Fn/Input", func(node any) any {
-		return &bpFnInOut{
-			Interface: &engine.Interface{
-				Node: node,
-			},
-		}
-	})
+	RegisterInterface("BPIC/BP/Fn/Input",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{
+				Node:  node,
+				Embed: &bpFnInOut{},
+			}
+		})
 
-	RegisterNode("BP/Fn/Output", func(i *engine.Instance) any {
-		node := &bpVarGet{
-			Node: &engine.Node{
+	RegisterNode("BP/Fn/Output",
+		func(i *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: i,
-			},
-		}
+				Embed:    &bpVarGet{},
+			}
 
-		iface := node.SetInterface("BPIC/BP/Fn/Output").(*fnOutput)
-		iface.QEnum = nodes.BPFnOutput
-		iface.QDynamicPort = true // Port is initialized dynamically
+			iface := node.SetInterface("BPIC/BP/Fn/Output")
+			iface.QEnum = nodes.BPFnOutput
+			iface.QDynamicPort = true // Port is initialized dynamically
 
-		iface.Title = "Output"
-		iface.Type = "bp-fn-output"
-		iface.QFuncMain = i.QFuncMain
-		i.QFuncMain.QProxyOutput = node
+			iface.Title = "Output"
+			iface.(*fnOutput).Type = "bp-fn-output"
+			iface.QFuncMain = i.QFuncMain
+			i.QFuncMain.QProxyOutput = node
 
-		return node
-	})
+			return node
+		})
 
-	RegisterInterface("BPIC/BP/Fn/Output", func(node any) any {
-		return &bpFnInOut{
-			Interface: &engine.Interface{
-				Node: node,
-			},
-		}
-	})
+	RegisterInterface("BPIC/BP/Fn/Output",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{
+				Node:  node,
+				Embed: &bpFnInOut{},
+			}
+		})
 
-	RegisterInterface("BPIC/BP/Fn/Main", func(node any) any {
-		return &FnMain{
-			Interface: &engine.Interface{
-				Node: node,
-			},
-		}
-	})
+	RegisterInterface("BPIC/BP/Fn/Main",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{
+				Node:  node,
+				Embed: &FnMain{},
+			}
+		})
 }

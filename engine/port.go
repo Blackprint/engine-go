@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/blackprint/engine-go/engine/nodes"
@@ -42,7 +43,8 @@ type Port struct {
 	QGhost          bool
 	QFunc           func(*Port)
 	QCallAll        func()
-	OnConnect       func(*Cable, *Port)
+	QOnConnect      func(*Cable, *Port) bool
+	QWaitPortInit   func(*Port)
 }
 
 /** For internal library use only */
@@ -78,7 +80,8 @@ type PortFeature struct {
 func (port *Port) QGetPortFeature() *PortFeature {
 	return port.QFeature
 }
-func (port *Port) DisconnectAll(hasRemote bool) {
+func (port *Port) DisconnectAll() {
+	hasRemote := port.Iface.Node.Instance.QRemote == nil
 	for _, cable := range port.Cables {
 		if hasRemote {
 			cable.QEvDisconnected = true
@@ -98,7 +101,6 @@ func (port *Port) CreateLinker() getterSetter {
 }
 
 func (port *Port) sync() {
-	var target *Port
 	skipSync := port.Iface.Node.Routes.Out != nil
 
 	for _, cable := range port.Cables {
@@ -166,11 +168,11 @@ func (port *Port) QCableConnectError(name string, obj *CableErrorEvent, severe b
 	}
 
 	if obj.Port != nil {
-		msg += "\nFrom port: " + obj.Port.Name + ") (iface: " + obj.Port.Iface.Namespace + ")\n - Type: " + obj.Port.Source + ") (" + obj.Port.Type + ")"
+		msg += fmt.Sprintf("\nFrom port: %s (iface: %s)\n - Type: %s) (%s)", obj.Port.Name, obj.Port.Iface.Namespace, obj.Port.Source, obj.Port.Type)
 	}
 
-	if obj.Target {
-		msg += "\nTo port: " + obj.Target.Name + ") (iface: " + obj.Target.Iface.Namespace + "))\n - Type: " + obj.Target.Source + ") (" + obj.Target.Type + "))"
+	if obj.Target != nil {
+		msg += fmt.Sprintf("\nTo port: %s (iface: %s)\n - Type: %s) (%s)", obj.Target.Name, obj.Target.Iface.Namespace, obj.Target.Source, obj.Target.Type)
 	}
 
 	obj.Message = msg
@@ -180,7 +182,7 @@ func (port *Port) QCableConnectError(name string, obj *CableErrorEvent, severe b
 		panic(msg + "\n\n")
 	}
 
-	instance.emit(name, obj)
+	instance.Emit(name, obj)
 }
 func (port *Port) ConnectCable(cable *Cable) bool {
 	if cable.IsRoute {
@@ -199,7 +201,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 		return false
 	}
 
-	if (port.OnConnect != nil && port.OnConnect(cable, cable.Owner)) || (cable.Owner.OnConnect != nil && cable.Owner.OnConnect(cable, port)) {
+	if (port.QOnConnect != nil && port.QOnConnect(cable, cable.Owner)) || (cable.Owner.QOnConnect != nil && cable.Owner.QOnConnect(cable, port)) {
 		return false
 	}
 

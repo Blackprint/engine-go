@@ -53,7 +53,7 @@ func portStructOf_split(port *Port) {
 	port.Splitted = true
 	port.DisconnectAll()
 
-	portData := node.Output.(map[string]*PortOutputGetterSetter)[port.Name]
+	portData := node.Output[port.Name]
 	if portData != nil {
 		portStructOf_handle(port, portData)
 	}
@@ -74,7 +74,7 @@ func portStructOf_unsplit(port *Port) {
 }
 
 func portStructOf_handle(port *Port, data any) {
-	output := port.Iface.Node.Output.(map[string]*PortOutputGetterSetter)
+	output := port.Iface.Node.Output
 
 	if data != nil {
 		for key, val := range port.Struct {

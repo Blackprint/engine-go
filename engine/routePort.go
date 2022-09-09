@@ -12,13 +12,13 @@ type RoutePort struct {
 	DisableOut bool
 	Disabled   bool
 	IsRoute    bool
-	Iface      *engine.Interface
+	Iface      *Interface
 
 	// for internal library use only
 	QIsPaused bool
 }
 
-func newRoutePort(iface any) *RoutePort {
+func newRoutePort(iface *Interface) *RoutePort {
 	temp := &RoutePort{
 		Iface:   iface,
 		IsRoute: true,
@@ -30,7 +30,7 @@ func newRoutePort(iface any) *RoutePort {
 }
 
 // Connect other route port (this .out to other .in port)
-func (r *RoutePort) RouteTo(iface any) {
+func (r *RoutePort) RouteTo(iface *Interface) {
 	if r.Out != nil {
 		r.Out.Disconnect()
 	}
@@ -42,7 +42,7 @@ func (r *RoutePort) RouteTo(iface any) {
 		return
 	}
 
-	port := iface.Node.Routes.(*RoutePort)
+	port := iface.Node.Routes
 
 	cable := NewCable(r.Port, port.Port)
 	cable.IsRoute = true
@@ -80,7 +80,7 @@ func (r *RoutePort) RouteOut() {
 	}
 
 	if r.Out == nil {
-		if r.Iface.QEnum.(int) == nodes.BPFnOutput {
+		if r.Iface.QEnum == nodes.BPFnOutput {
 			node := r.Iface.QFuncMain.Node
 			route := node.Routes.(*RoutePort)
 			route.RouteIn()
@@ -94,12 +94,12 @@ func (r *RoutePort) RouteOut() {
 		return
 	}
 
-	enum := targetRoute.Iface.QEnum.(int)
+	enum := targetRoute.Iface.QEnum
 
 	if enum == 0 {
 		targetRoute.RouteIn(r.Out)
 	} else if enum == nodes.BPFnMain {
-		routes := targetRoute.Iface.QProxyInput.Routes.(*RoutePort)
+		routes := targetRoute.Iface.QProxyInput.Routes
 		routes.RouteIn(r.Out)
 	} else if enum == nodes.BPFnOutput {
 		node := targetRoute.Iface.QFuncMain.Node

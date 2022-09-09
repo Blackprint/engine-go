@@ -58,6 +58,11 @@ type Interface struct {
 	QDynamicPort bool
 	QEnum        int
 	QBpVarRef    *BPVariable
+	QProxyInput  *Node
+	QProxyOutput *Node
+	QParentFunc  *Interface
+	QBpInstance  *Instance
+	QBpDestroy   bool
 }
 
 // To be overriden
@@ -79,7 +84,7 @@ func (iface *Interface) QPrepare(meta *NodeMetadata) {
 	node.Ref = ref
 	iface.Ref = ref
 
-	node.Route = &RoutePort{Iface: iface}
+	node.Routes = &RoutePort{Iface: iface}
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]

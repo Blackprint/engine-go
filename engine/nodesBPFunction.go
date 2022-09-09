@@ -10,11 +10,11 @@ import (
 
 // Main function node
 type BPFunctionNode struct { // Main function node -> BPI/F/{FunctionName}
-	Node *Node
+	*EmbedNode
 }
 
 func (b *BPFunctionNode) Init() {
-	if b.Node.Iface.QImportOnce {
+	if b.Iface.QImportOnce {
 		b.Iface.QBpFnInit()
 	}
 }
@@ -29,7 +29,7 @@ func (b *BPFunctionNode) Update(cable *Cable) {
 	Output := iface.Node.Output
 
 	if cable == nil { // Triggered by port route
-		thisInput := b.Input
+		thisInput := b.Node.Input
 
 		// Sync all port value
 		for key, value := range iface.Output {
@@ -37,7 +37,7 @@ func (b *BPFunctionNode) Update(cable *Cable) {
 				continue
 			}
 
-			Output[key].Set(thisInput[key]())
+			Output[key].Set(thisInput[key].Get())
 		}
 
 		return
@@ -58,14 +58,17 @@ type BPFunction struct { // <= _funcInstance
 	Id           string
 	Title        string
 	Type         int
-	Used         *Interface
+	Used         []*Interface
 	Input        *NodePortTemplate
 	Output       *NodePortTemplate
 	Structure    SingleInstanceJSON
-	Variables    map[string]BPVariable
+	Variables    map[string]*BPVariable
 	PrivateVars  []string
 	RootInstance *Instance
 	Node         func(*Instance) *Node // Node constructor
+
+	// for internal library use only
+	QSyncing bool
 }
 
 func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
@@ -78,8 +81,9 @@ func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 		nodeInstance.PendingRender = true // Force recalculation for cable position
 
 		if eventName == "cable.connect" || eventName == "cable.disconnect" {
-			input := obj.Cable.Input
-			output := obj.Cable.Output
+			cable := utils.GetProperty(obj, "Cable").(*Cable)
+			input := cable.Input
+			output := cable.Output
 			ifaceList := fromNode.Iface.QBpInstance.IfaceList
 
 			// Skip event that also triggered when deleting a node
@@ -113,7 +117,7 @@ func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 
 				if targetInput == nil {
 					if inputIface.QEnum == nodes.BPFnOutput {
-						targetInput = inputIface.AddPort(targetOutput, output.Name)
+						targetInput = inputIface.Embed.(*bpFnInOut).AddPort(targetOutput, output.Name)
 					} else {
 						panic("Output port was not found")
 					}
@@ -121,7 +125,7 @@ func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 
 				if targetOutput == nil {
 					if outputIface.QEnum == nodes.BPFnInput {
-						targetOutput = outputIface.AddPort(targetInput, input.Name)
+						targetOutput = outputIface.Embed.(*bpFnInOut).AddPort(targetInput, input.Name)
 					} else {
 						panic("Input port was not found")
 					}
@@ -140,19 +144,21 @@ func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 				}
 			}
 		} else if eventName == "node.created" {
-			iface := obj.Iface
+			iface := utils.GetProperty(obj, "Iface").(*Interface)
 			nodeInstance.CreateNode(iface.Namespace, map[string]any{
 				"data": iface.Data,
 			})
 		} else if eventName == "node.delete" {
-			index := utils.IndexOf(fromNode.Iface.QBpInstance.IfaceList, obj.Iface)
-			if index == false {
+			objIface := utils.GetProperty(obj, "Iface").(*Interface)
+
+			index := utils.IndexOf(fromNode.Iface.QBpInstance.IfaceList, objIface)
+			if index == -1 {
 				panic("Failed to get node index")
 			}
 
 			iface := nodeInstance.IfaceList[index]
-			if iface.Namespace != obj.Iface.Namespace {
-				fmt.Println(iface.Namespace + " " + obj.Iface.Namespace)
+			if iface.Namespace != objIface.Namespace {
+				fmt.Println(iface.Namespace + " " + objIface.Namespace)
 				panic("Failed to delete node from other function instance")
 			}
 
@@ -163,8 +169,8 @@ func (b *BPFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 	}
 }
 
-func (b *BPFunction) CreateNode(instance *Instance, options map[string]any) (any, []any) {
-	return instance.CreateNode(b.Node, options)
+func (b *BPFunction) CreateNode(instance *Instance, options nodeConfig) (*Interface, []*Interface) {
+	return instance.CreateNode(b.Node, options, nil)
 }
 
 func (b *BPFunction) CreateVariable(id string, options map[string]any) *BPVariable {
@@ -228,10 +234,10 @@ func (b *BPFunction) RenamePort(which string, fromName string, toName string) {
 	var proxyPort string
 	if which == "output" {
 		main = *b.Output
-		proxyPort = "input"
+		proxyPort = "Input"
 	} else {
 		main = *b.Input
-		proxyPort = "output"
+		proxyPort = "Output"
 	}
 
 	main[toName] = main[fromName]
@@ -247,7 +253,8 @@ func (b *BPFunction) RenamePort(which string, fromName string, toName string) {
 			temp = iface.QProxyInput
 		}
 
-		temp.Iface[proxyPort][fromName].Name_.Name = toName
+		portList := utils.GetProperty(temp.Iface, proxyPort).(map[string]*Port)
+		portList[fromName].Name_.Name = toName
 		temp.RenamePort(proxyPort, fromName, toName)
 
 		for _, proxyVar := range iface.BpInstance.IfaceList {

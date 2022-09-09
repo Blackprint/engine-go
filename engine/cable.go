@@ -17,6 +17,7 @@ type Cable struct {
 	IsRoute         bool
 	Connected       bool
 	QEvDisconnected bool
+	QGhost          bool
 }
 
 type CableEvent struct {
@@ -94,14 +95,14 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 	if c.IsRoute { // ToDo: simplify, use 'which' instead of check all
 		if c.Output.Cables != nil {
 			c.Output.Cables = c.Output.Cables[:0]
-		} else if c.Output.Out == c {
-			c.Output.Out = nil
-		} else if c.Input.Out == c {
-			c.Input.Out = nil
+		} else if c.Output.RoutePort.Out == c {
+			c.Output.RoutePort.Out = nil
+		} else if c.Input.RoutePort.Out == c {
+			c.Input.RoutePort.Out = nil
 		}
 
-		c.Output.In = utils.RemoveItem(c.Output.In, c)
-		c.Input.In = utils.RemoveItem(c.Input.In, c)
+		c.Output.RoutePort.In = utils.RemoveItem(c.Output.RoutePort.In, c)
+		c.Input.RoutePort.In = utils.RemoveItem(c.Input.RoutePort.In, c)
 
 		c.Connected = false
 		return
@@ -127,7 +128,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 
 			c.Owner.Emit("disconnect", temp)
 			c.Owner.Iface.Emit("cable.disconnect", temp)
-			ins := c.Owner.Iface.Node.Instance.(*Instance)
+			ins := c.Owner.Iface.Node.Instance
 			ins.Emit("cable.disconnect", temp)
 
 			alreadyEmitToInstance = true
@@ -153,7 +154,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 		c.Target.Iface.Emit("cable.disconnect", temp)
 
 		if alreadyEmitToInstance == false {
-			ins := c.Target.Iface.Node.Instance.(*Instance)
+			ins := c.Target.Iface.Node.Instance
 			ins.Emit("cable.disconnect", temp)
 		}
 	}

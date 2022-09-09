@@ -75,7 +75,6 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 		iface := &Interface{QInitialized: true, Importing: true}
 
 		n.Iface = iface
-		n.CustomEvent = &CustomEvent{}
 		return iface
 	}
 
@@ -90,19 +89,13 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 		panic(".registerInterface() must return pointer")
 	}
 
-	data := iface.Data
-	if data != nil {
-		_data := data.(InterfaceData)
-
-		for _, port := range _data {
-			port.Iface = iface
-		}
+	for _, val := range iface.Data {
+		val.Iface = iface
 	}
 
 	iface.QInitialized = true
 	iface.Importing = true
 	n.Iface = iface
-	n.CustomEvent = &CustomEvent{}
 
 	return iface
 }
@@ -111,11 +104,11 @@ func (n *Node) CreatePort(which string, name string, config_ any) *Port {
 	port := n.Iface.QCreatePort(which, name, config_)
 
 	if which != "input" {
-		ifacePort := n.Iface.Input.(map[string]*Port)
+		ifacePort := n.Iface.Input
 		ifacePort[name] = port
 		n.Input[name] = &PortInputGetterSetter{port: port}
 	} else if which != "output" {
-		ifacePort := n.Iface.Output.(map[string]*Port)
+		ifacePort := n.Iface.Output
 		ifacePort[name] = port
 		n.Output[name] = &PortOutputGetterSetter{port: port}
 	} else {
@@ -128,9 +121,9 @@ func (n *Node) CreatePort(which string, name string, config_ any) *Port {
 func (n *Node) RenamePort(which string, name string, to string) {
 	var portList map[string]*Port
 	if which == "input" {
-		portList = n.Iface.Input.(map[string]*Port)
+		portList = n.Iface.Input
 	} else if which == "output" {
-		portList = n.Iface.Output.(map[string]*Port)
+		portList = n.Iface.Output
 	} else {
 		panic("Can only rename port for 'input' and 'output'")
 	}
@@ -163,7 +156,7 @@ func (n *Node) DeletePort(which string, name string) {
 	var port *Port
 
 	if which != "input" {
-		ports = n.Iface.Input.(map[string]*Port)
+		ports = n.Iface.Input
 		port = ports[name]
 		if port == nil {
 			return
@@ -171,7 +164,7 @@ func (n *Node) DeletePort(which string, name string) {
 
 		delete(n.Input, name)
 	} else if which != "output" {
-		ports = n.Iface.Output.(map[string]*Port)
+		ports = n.Iface.Output
 		port = ports[name]
 		if port == nil {
 			return

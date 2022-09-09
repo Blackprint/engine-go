@@ -24,14 +24,14 @@ type BPVariable struct {
 	Id       string
 	Title    string
 	Type     reflect.Kind
-	Used     []any // *engine.Interface
+	Used     []*Interface
 	Value    bpVarValue
-	Listener []any // *engine.Interface
+	Listener []*Interface
 }
 
 func (b *BPVariable) Destroy() {
 	for _, iface := range b.Used {
-		ins := (iface.Node).Instance.(*Instance)
+		ins := iface.Node.Instance
 		ins.DeleteNode(iface)
 	}
 

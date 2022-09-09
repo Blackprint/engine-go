@@ -26,8 +26,10 @@ type Instance struct {
 	Functions map[string]*BPFunction
 	Ref       map[string]*referencesShortcut
 
-	QFuncMain     *BPFunction // => *engine.Interface
-	QFuncInstance *Instance
+	QFuncMain     *Instance
+	QFuncInstance *BPFunction
+	QMainInstance *Instance
+	QRemote       any
 }
 
 func New() *Instance {
@@ -99,7 +101,7 @@ type ImportOptions struct {
 	AppendMode bool
 }
 
-func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inserted []any, err error) {
+func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inserted []*Interface, err error) {
 	var data SingleInstanceJSON
 
 	err = json.Unmarshal(str, &data)
@@ -153,7 +155,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 		for _, iface := range ifaces.(nodeList) {
 			iface.I += appendLength
 
-			var temp any
+			var temp *Interface
 			temp, inserted = instance.CreateNode(namespace, iface, inserted)
 
 			ifaceList[iface.I] = temp
@@ -176,7 +178,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 			// If have output connection
 			out := ifaceJSON.Output
 			if out != nil {
-				Output := *iface.Output.(*map[string]*Port)
+				Output := iface.Output
 
 				// Every output port that have connection
 				for portName, ports := range out {
@@ -185,14 +187,14 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 					if linkPortA == nil {
 						if iface.QEnum == nodes.BPFnInput {
 							target := instance.QGetTargetPortType(iface.Node.Instance, "input", ports)
-							linkPortA = iface.AddPort(target, portName)
+							linkPortA = iface.Embed.(*bpFnInOut).AddPort(target, portName)
 
 							if linkPortA == nil {
 								panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, iface.QFuncMain.Node.QFuncInstance.Id))
 							}
 						} else if iface.QEnum == nodes.BPVarGet {
 							target := instance.QGetTargetPortType(instance, "input", ports)
-							iface.UseType(target)
+							iface.Embed.(*iVarGet).UseType(target)
 							linkPortA = iface.Output[portName]
 						} else {
 							panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", ifaceJSON.I, portName))
@@ -205,31 +207,31 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 						targetNode := ifaceList[target.I]
 
 						// output can only meet input port
-						Input := *targetNode.Input.(*map[string]*Port)
+						Input := targetNode.Input
 						linkPortB := Input[target.Name]
 
 						if linkPortB == nil {
-							targetTitle := targetNode.Title.(string)
+							targetTitle := targetNode.Title
 
 							if targetNode.QEnum == nodes.BPFnOutput {
-								linkPortB = targetNode.AddPort(linkPortA, target)
+								linkPortB = targetNode.Embed.(*bpFnInOut).AddPort(linkPortA, target)
 
 								if linkPortB == nil {
 									panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, targetNode.QFuncMain.Node.QFuncInstance.Id))
 								}
 							} else if targetNode.QEnum == nodes.BPVarGet {
-								targetNode.UseType(target)
+								targetNode.Embed.(*iVarGet).UseType(target)
 								linkPortB = targetNode.Input[target.Name]
-							} else if targetNode.Type == types.Route {
-								linkPortB = targetNode.Node.Routes
+							} else if linkPortA.Type == types.Route {
+								linkPortB = targetNode.Node.Routes.Port
 							} else {
 								panic(fmt.Sprintf("Node port not found for %s with name: %s", targetTitle, target.Name))
 							}
 						}
 
 						// For Debugging ->
-						// Title := iface.Title.(string)
-						// targetTitle := targetNode.Title.(string)
+						// Title := iface.Title
+						// targetTitle := targetNode.Title
 						// fmt.Printf("%s.%s => %s.%s\n", Title, linkPortA.Name, targetTitle, linkPortB.Name)
 						// <- For Debugging
 
@@ -264,13 +266,13 @@ type EvNodeDelete struct {
 	Iface any
 }
 
-func (instance *Instance) DeleteNode(iface any) {
-	i := utils.IndexOfAny(instance.IfaceList, iface)
+func (instance *Instance) DeleteNode(iface *Interface) {
+	i := utils.IndexOf(instance.IfaceList, iface)
 	if i == -1 {
 		panic("Node to be deleted was not found")
 	}
 
-	instance.IfaceList = utils.RemoveItemAtIndexAny(instance.IfaceList, i)
+	instance.IfaceList = utils.RemoveItemAtIndex(instance.IfaceList, i)
 
 	eventData := &EvNodeDelete{
 		Iface: iface,
@@ -281,7 +283,7 @@ func (instance *Instance) DeleteNode(iface any) {
 	iface.Destroy()
 
 	for _, port := range iface.Output {
-		port.DisconnectAll(instance.QRemote == nil)
+		port.DisconnectAll()
 	}
 
 	routes := iface.Node.Routes
@@ -349,7 +351,7 @@ func (instance *Instance) GetNodes(namespace string) []*Interface {
 }
 
 // ToDo: sync with JS, when creating function node this still broken
-func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []any) (any, []any) {
+func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []*Interface) (*Interface, []*Interface) {
 	func_ := QNodeList[namespace]
 	var node *Node
 	var isFuncNode bool
@@ -382,7 +384,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	// *iface: extends engine.Interface
 	iface := node.Iface
-	if iface == nil || iface.QInitialized.(bool) == false {
+	if iface == nil || iface.QInitialized == false {
 		panic(namespace + ": Node interface was not found, do you forget to call node.SetInterface() ?")
 	}
 
@@ -433,7 +435,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	iface.Init()
 	if nodes != nil {
-		nodes = append(nodes, node)
+		nodes = append(nodes, iface)
 	} else {
 		// Init now if not A batch creation
 		node.Init()
@@ -555,11 +557,11 @@ type NodeLogEvent struct {
 	Message    string
 }
 
-func (instance *Instance) QLog(iface any, message string) {
+func (instance *Instance) QLog(iface *Interface, message string) {
 	evData := NodeLogEvent{
 		Instance:   instance,
 		Iface:      iface,
-		IfaceTitle: iface.Title.(string),
+		IfaceTitle: iface.Title,
 		Message:    message,
 	}
 

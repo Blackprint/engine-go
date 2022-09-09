@@ -10,18 +10,20 @@ import (
 )
 
 type bpVarSet struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 type bpVarGet struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 
 func (b *bpVarSet) Update(c *engine.Cable) {
-	b.Iface.QBpVarRef.Value.Set(b.Input["Val"].Get())
+	b.Iface.QBpVarRef.Value.Set(b.Node.Input["Val"].Get())
 }
 
 type bpVarGetSet struct {
-	*engine.Interface
+	*engine.EmbedInterface
+	Type       string
+	QBpVarRef  *engine.BPVariable
 	QOnChanged func(*engine.Port)
 }
 
@@ -39,14 +41,14 @@ func (b *bpVarGetSet) Imported(data map[string]any) {
 }
 
 func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*engine.BPVariable {
-	if _, exist := b.Data["name"]; exist {
+	if _, exist := b.Iface.Data["name"]; exist {
 		panic("Can't change variable node that already be initialized")
 	}
 
-	b.Data["name"] = &engine.GetterSetter{Value: name}
-	b.Data["scope"] = &engine.GetterSetter{Value: scopeId}
+	b.Iface.Data["name"] = &engine.GetterSetter{Value: name}
+	b.Iface.Data["scope"] = &engine.GetterSetter{Value: scopeId}
 
-	thisInstance := b.Node.Instance.(*engine.Instance)
+	thisInstance := b.Node.Instance
 	funcInstance := thisInstance.QFuncMain
 	if funcInstance == nil {
 		funcInstance.Node.QFuncInstance
@@ -114,14 +116,14 @@ func (b *bpVarGetSet) Destroy() {
 		return
 	}
 
-	temp.Used = utils.RemoveItemAny(temp.Used, b)
+	temp.Used = utils.RemoveItem(temp.Used, b.Iface)
 
 	listener := b.QBpVarRef.Listener
 	if listener == nil {
 		return
 	}
 
-	b.QBpVarRef.Listener = utils.RemoveItemAny(listener, b)
+	b.QBpVarRef.Listener = utils.RemoveItem(listener, b.Iface)
 }
 
 type iVarSet struct {
@@ -136,7 +138,7 @@ func (b *iVarSet) UseType(port *engine.Port) {
 }
 
 func (b *iVarSet) ChangeVar(name string, scopeId int) {
-	if _, exist := b.Data["name"]; exist {
+	if _, exist := b.Iface.Data["name"]; exist {
 		panic("Can't change variable node that already be initialized")
 	}
 
@@ -145,9 +147,9 @@ func (b *iVarSet) ChangeVar(name string, scopeId int) {
 	}
 
 	scope := b.bpVarGetSet.ChangeVar(name, scopeId)
-	b.Title = "Get " + name
+	b.Iface.Title = "Get " + name
 
-	temp := scope[b.Data["name"].Get().(string)]
+	temp := scope[b.Iface.Data["name"].Get().(string)]
 	b.QBpVarRef = temp
 	if temp.Type == 0 { // Type not set
 		return
@@ -160,12 +162,12 @@ func (b *iVarSet) QReinitPort() *engine.Port {
 	temp := b.QBpVarRef
 	node := b.Node
 
-	if b.Output["Val"] != nil {
-		node.DeletePort("Val")
+	if b.Iface.Output["Val"] != nil {
+		node.DeletePort("output", "Val")
 	}
 
-	ref := b.Node.Output.(map[string]*engine.PortOutputGetterSetter)
-	b.Node.CreatePort("Val", temp.Type)
+	ref := b.Node.Output
+	b.Node.CreatePort("output", "Val", temp.Type)
 
 	if temp.Type == types.Function {
 		b.QEventListen = "call"
@@ -180,7 +182,7 @@ func (b *iVarSet) QReinitPort() *engine.Port {
 	}
 
 	temp.On(b.QEventListen, b.QOnChanged)
-	return b.Output["Val"]
+	return b.Iface.Output["Val"]
 }
 
 func (b *iVarSet) Destroy() {
@@ -203,9 +205,9 @@ func (b *iVarGet) UseType(port *engine.Port) {
 
 func (b *iVarGet) ChangeVar(name string, scopeId int) {
 	scope := b.bpVarGetSet.ChangeVar(name, scopeId)
-	b.Title = "Set " + name
+	b.Iface.Title = "Set " + name
 
-	temp := scope[b.Data["name"].Get().(string)]
+	temp := scope[b.Iface.Data["name"].Get().(string)]
 	b.QBpVarRef = temp
 	if temp.Type == 0 { // Type not set
 		return
@@ -215,7 +217,7 @@ func (b *iVarGet) ChangeVar(name string, scopeId int) {
 }
 
 func (b *iVarGet) QReinitPort() *engine.Port {
-	input := b.Input
+	input := b.Iface.Input
 	node := b.Node
 	temp := b.QBpVarRef
 
@@ -231,73 +233,77 @@ func (b *iVarGet) QReinitPort() *engine.Port {
 		node.CreatePort("Input", "Val", temp.Type)
 	}
 
-	return b.Input["Val"]
+	return input["Val"]
 }
 
 func init() {
-	RegisterNode("BP/Var/Set", func(i *engine.Instance) any {
-		node := &bpVarSet{
-			Node: &engine.Node{
+	RegisterNode("BP/Var/Set", &engine.NodeMetadata{
+		Input: engine.NodePortTemplate{},
+	},
+		func(i *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: i,
-			},
-		}
+				Embed:    &bpVarSet{},
+			}
 
-		iface := node.SetInterface("BPIC/BP/Var/Set").(*iVarSet)
+			iface := node.SetInterface("BPIC/BP/Var/Set")
 
-		// Specify data field from here to make it enumerable and exportable
-		iface.Data = engine.InterfaceData{
-			"name":  &engine.GetterSetter{Value: ""},
-			"scope": &engine.GetterSetter{Value: engine.VarScopePublic},
-		}
+			// Specify data field from here to make it enumerable and exportable
+			iface.Data = engine.InterfaceData{
+				"name":  &engine.GetterSetter{Value: ""},
+				"scope": &engine.GetterSetter{Value: engine.VarScopePublic},
+			}
 
-		iface.Title = "VarSet"
-		iface.Type = "bp-var-set"
-		iface.QEnum = nodes.BPVarSet
-		iface.QDynamicPort = true
+			iface.Title = "VarSet"
+			iface.Embed.(*iVarSet).Type = "bp-var-set"
+			iface.QEnum = nodes.BPVarSet
+			iface.QDynamicPort = true
 
-		return node
-	})
+			return node
+		})
 
-	RegisterInterface("BPIC/BP/Var/Get", func(node any) any {
-		return &iVarGet{
-			bpVarGetSet: &bpVarGetSet{
-				Interface: &engine.Interface{
-					Node: node,
+	RegisterInterface("BPIC/BP/Var/Get",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{
+				Node: node,
+				Embed: &iVarGet{
+					bpVarGetSet: &bpVarGetSet{},
 				},
-			},
-		}
-	})
+			}
+		})
 
-	RegisterNode("BP/Var/Get", func(i *engine.Instance) any {
-		node := &bpVarGet{
-			Node: &engine.Node{
+	RegisterNode("BP/Var/Get", &engine.NodeMetadata{
+		Output: engine.NodePortTemplate{},
+	},
+		func(i *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: i,
-			},
-		}
+				Embed:    &bpVarGet{},
+			}
 
-		iface := node.SetInterface("BPIC/BP/Var/Get").(*iVarGet)
+			iface := node.SetInterface("BPIC/BP/Var/Get")
 
-		// Specify data field from here to make it enumerable and exportable
-		iface.Data = engine.InterfaceData{
-			"name":  &engine.GetterSetter{Value: ""},
-			"scope": &engine.GetterSetter{Value: engine.VarScopePublic},
-		}
+			// Specify data field from here to make it enumerable and exportable
+			iface.Data = engine.InterfaceData{
+				"name":  &engine.GetterSetter{Value: ""},
+				"scope": &engine.GetterSetter{Value: engine.VarScopePublic},
+			}
 
-		iface.Title = "VarGet"
-		iface.Type = "bp-var-get"
-		iface.QEnum = nodes.BPVarGet
-		iface.QDynamicPort = true
+			iface.Title = "VarGet"
+			iface.Embed.(*iVarGet).Type = "bp-var-get"
+			iface.QEnum = nodes.BPVarGet
+			iface.QDynamicPort = true
 
-		return node
-	})
+			return node
+		})
 
-	RegisterInterface("BPIC/BP/Var/Get", func(node any) any {
-		return &iVarGet{
-			bpVarGetSet: &bpVarGetSet{
-				Interface: &engine.Interface{
-					Node: node,
+	RegisterInterface("BPIC/BP/Var/Get",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{
+				Node: node,
+				Embed: &iVarGet{
+					bpVarGetSet: &bpVarGetSet{},
 				},
-			},
-		}
-	})
+			}
+		})
 }
