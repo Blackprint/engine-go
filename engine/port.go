@@ -22,7 +22,7 @@ type Port struct {
 	Types       []reflect.Kind
 	Cables      []*Cable
 	Source      int
-	Iface       any
+	Iface       *Interface
 	Default     any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Value       any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Sync        bool

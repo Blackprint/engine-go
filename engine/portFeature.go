@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"reflect"
-
 	"github.com/blackprint/engine-go/types"
 	"github.com/blackprint/engine-go/utils"
 )
@@ -55,7 +53,7 @@ func portStructOf_split(port *Port) {
 	port.Splitted = true
 	port.DisconnectAll()
 
-	portData := utils.GetProperty(node, "Output").(map[string]*PortOutputGetterSetter)[port.Name]
+	portData := node.Output.(map[string]*PortOutputGetterSetter)[port.Name]
 	if portData != nil {
 		portStructOf_handle(port, portData)
 	}
@@ -71,15 +69,12 @@ func portStructOf_unsplit(port *Port) {
 	node := port.Iface.Node
 
 	for key, _ := range parent.Struct {
-		utils.CallFunction(node, "DeletePort", &[]reflect.Value{
-			reflect.ValueOf("output"),
-			reflect.ValueOf(parent.Name + key),
-		})
+		node.DeletePort("output", parent.Name+key)
 	}
 }
 
 func portStructOf_handle(port *Port, data any) {
-	output := utils.GetProperty(port.Iface.Node, "Output").(map[string]*PortOutputGetterSetter)
+	output := port.Iface.Node.Output.(map[string]*PortOutputGetterSetter)
 
 	if data != nil {
 		for key, val := range port.Struct {

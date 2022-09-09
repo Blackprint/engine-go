@@ -10,32 +10,32 @@ import (
 
 // ============
 type InputSimple struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 
 // Bring value from imported iface to node output
-func (node *InputSimple) Imported() {
-	val := node.Iface.(*InputSimpleIFace).Data["value"].Get()
+func (this *InputSimple) Imported(map[string]any) {
+	val := this.Iface.Data["value"].Get()
 	if val != nil {
 		log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mSaved data as output: %s\x1b[0m\n", val)
 	}
 
-	node.Output["Value"].Set(val)
+	this.Node.Output["Value"].Set(val)
 }
 
 type InputSimpleIFace struct {
-	*engine.Interface
+	*engine.EmbedInterface
 }
 
-func (iface *InputSimpleIFace) Changed(val any) {
+func (this *InputSimpleIFace) Changed(val any) {
 	// This node still being imported
-	if iface.Importing != false {
+	if this.Iface.Importing != false {
 		return
 	}
 
 	log.Printf("\x1b[1m\x1b[33mInput\\Simple:\x1b[0m \x1b[33mThe input box have new value: %s\x1b[0m\n", val)
 
-	node := iface.Node.(*InputSimple)
+	node := this.Node
 	node.Output["Value"].Set(val)
 
 	// This will call every connected node
@@ -57,38 +57,34 @@ func (gs *MyData) Get() any {
 }
 
 // This will be called from example.go
-func RegisterInput() {
-	Blackprint.RegisterNode("Example/Input/Simple", func(instance *engine.Instance) any {
-		node := &InputSimple{
-			Node: &engine.Node{
+func init() {
+	Blackprint.RegisterNode("Example/Input/Simple", &engine.NodeMetadata{
+		Output: engine.NodePortTemplate{
+			"Changed": types.Function,
+			"Value":   types.String,
+		},
+	},
+		func(instance *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: instance,
+				Embed:    &InputSimple{},
+			}
 
-				// Node's Output Port Template
-				TOutput: engine.NodePortTemplate{
-					"Changed": types.Function,
-					"Value":   types.String,
-				},
-			},
-		}
+			iface := node.SetInterface("BPIC/Example/Input")
+			iface.Title = "Input"
 
-		iface := node.SetInterface("BPIC/Example/Input").(*InputSimpleIFace)
-		iface.Title = "Input"
+			return node
+		})
 
-		return node
-	})
-
-	Blackprint.RegisterInterface("BPIC/Example/Input", func(node_ any) any {
-		// node := node_.(InputSimple)
-
-		var iface *InputSimpleIFace
-		iface = &InputSimpleIFace{
-			Interface: &engine.Interface{
+	Blackprint.RegisterInterface("BPIC/Example/Input",
+		func(node *engine.Node) *engine.Interface {
+			iface := &engine.Interface{
 				Data: engine.InterfaceData{
 					"value": &MyData{val: "..."},
 				},
-			},
-		}
+				Embed: &InputSimpleIFace{},
+			}
 
-		return iface
-	})
+			return iface
+		})
 }

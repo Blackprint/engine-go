@@ -1,6 +1,6 @@
 package engine
 
-type ReferencesShortcut struct {
+type referencesShortcut struct {
 	IInput  map[string]*Port
 	Input   map[string]*PortInputGetterSetter
 	IOutput map[string]*Port

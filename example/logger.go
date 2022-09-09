@@ -7,48 +7,44 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
+	"github.com/blackprint/engine-go/types"
 )
-
-// This will be called from example.go
-func RegisterDisplay() {
-	RegisterLogger()
-}
 
 // ============
 type LoggerNode struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 type LoggerIFace struct {
-	*engine.Interface
+	*engine.EmbedInterface
 	log string
 }
 
-func (iface *LoggerIFace) Init() {
+func (this *LoggerIFace) Init() {
 	refreshLogger := func(val any) {
 		if val == nil {
 			val = "nil"
-			iface.Log(val)
+			this.Log(val)
 		} else {
 			types := reflect.TypeOf(val).Kind()
 
 			if types == reflect.String || types == reflect.Int64 || types == reflect.Float64 {
-				iface.Log(val)
+				this.Log(val)
 			} else {
 				byte_, _ := json.Marshal(val)
-				iface.Log(string(byte_)) // ToDo, convert any object to JSON string
+				this.Log(string(byte_)) // ToDo, convert any object to JSON string
 			}
 		}
 	}
 
-	node := iface.Node.(*LoggerNode)
+	node := this.Node
 
 	// Let's show data after new cable was connected or disconnected
-	iface.On("cable.connect cable.disconnect", func(_cable any) {
+	this.Iface.On("cable.connect cable.disconnect", func(_cable any) {
 		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mA cable was changed on Logger, now refresing the input element\x1b[0m\n")
 		refreshLogger(node.Input["Any"].Get())
 	})
 
-	iface.Input["Any"].On("value", func(_port any) {
+	this.Iface.Input["Any"].On("value", func(_port any) {
 		port := _port.(*engine.Port)
 		log.Printf("\x1b[1m\x1b[33mDisplay\\Logger:\x1b[0m \x1b[33mI connected to %s (port %s), that have new value: %v\x1b[0m\n", port.Iface.Title, port.Name, port.Value)
 
@@ -68,29 +64,26 @@ func (iface *LoggerIFace) Log(val ...any) any {
 	return nil
 }
 
-func RegisterLogger() {
-	Blackprint.RegisterNode("Example/Display/Logger", func(instance *engine.Instance) any {
-		node := &LoggerNode{
-			Node: &engine.Node{
+func init() {
+	Blackprint.RegisterNode("Example/Display/Logger", &engine.NodeMetadata{
+		Input: engine.NodePortTemplate{
+			"Any": engine.Ports.ArrayOf(types.Any), // nil => Any
+		},
+	},
+		func(instance *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: instance,
+				Embed:    &LoggerNode{},
+			}
 
-				// Node's Input Port Template
-				TInput: engine.NodePortTemplate{
-					"Any": engine.Ports.ArrayOf(reflect.Interface), // nil => Any
-				},
-			},
-		}
+			iface := node.SetInterface("BPIC/Example/Display/Logger")
+			iface.Title = "Logger"
 
-		iface := node.SetInterface("BPIC/Example/Display/Logger").(*LoggerIFace)
-		iface.Title = "Logger"
+			return node
+		})
 
-		return node
-	})
-
-	Blackprint.RegisterInterface("BPIC/Example/Display/Logger", func(node_ any) any {
-		// node := node_.(LoggerNode)
-		return &LoggerIFace{
-			Interface: &engine.Interface{},
-		}
-	})
+	Blackprint.RegisterInterface("BPIC/Example/Display/Logger",
+		func(node *engine.Node) *engine.Interface {
+			return &engine.Interface{Embed: &LoggerIFace{}}
+		})
 }

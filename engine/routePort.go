@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"reflect"
-
 	"github.com/blackprint/engine-go/engine/nodes"
 	"github.com/blackprint/engine-go/utils"
 )
@@ -14,7 +12,7 @@ type RoutePort struct {
 	DisableOut bool
 	Disabled   bool
 	IsRoute    bool
-	Iface      any // any = extends *engine.Interface
+	Iface      *engine.Interface
 
 	// for internal library use only
 	QIsPaused bool
@@ -44,7 +42,7 @@ func (r *RoutePort) RouteTo(iface any) {
 		return
 	}
 
-	port := utils.GetProperty(utils.GetProperty(iface, "Node"), "Routes").(*RoutePort)
+	port := iface.Node.Routes.(*RoutePort)
 
 	cable := NewCable(r.Port, port.Port)
 	cable.IsRoute = true
@@ -69,13 +67,11 @@ func (r *RoutePort) ConnectCable(cable *Cable) bool {
 }
 
 func (r *RoutePort) RouteIn(cable *Cable) {
-	node := utils.GetProperty(r.Iface, "Node")
-	utils.CallFunction(node, "Update", &[]reflect.Value{
-		reflect.ValueOf(cable),
-	})
+	node := r.Iface.Node
+	node.Update(cable)
 
-	routes := utils.GetProperty(node, "Routes")
-	utils.CallFunction(routes, "RouteOut", utils.EmptyArgs)
+	routes := node.Routes
+	routes.RouteOut()
 }
 
 func (r *RoutePort) RouteOut() {
@@ -84,10 +80,10 @@ func (r *RoutePort) RouteOut() {
 	}
 
 	if r.Out == nil {
-		if utils.GetProperty(r.Iface, "QEnum").(int) == nodes.BPFnOutput {
-			node := utils.GetProperty(utils.GetProperty(r.Iface, "QFuncMain"), "Node")
-			route := utils.GetProperty(node, "Routes").(*RoutePort)
-			utils.CallFunction(route, "RouteIn", utils.EmptyArgs)
+		if r.Iface.QEnum.(int) == nodes.BPFnOutput {
+			node := r.Iface.QFuncMain.Node
+			route := node.Routes.(*RoutePort)
+			route.RouteIn()
 		}
 
 		return
@@ -98,16 +94,16 @@ func (r *RoutePort) RouteOut() {
 		return
 	}
 
-	enum := utils.GetProperty(targetRoute.Iface, "QEnum").(int)
+	enum := targetRoute.Iface.QEnum.(int)
 
 	if enum == 0 {
 		targetRoute.RouteIn(r.Out)
 	} else if enum == nodes.BPFnMain {
-		routes := utils.GetProperty(utils.GetProperty(targetRoute.Iface, "QProxyInput"), "Routes").(*RoutePort)
+		routes := targetRoute.Iface.QProxyInput.Routes.(*RoutePort)
 		routes.RouteIn(r.Out)
 	} else if enum == nodes.BPFnOutput {
-		node := utils.GetProperty(utils.GetProperty(targetRoute.Iface, "QFuncMain"), "Node")
-		routes := utils.GetProperty(node, "Routes").(*RoutePort)
+		node := targetRoute.Iface.QFuncMain.Node
+		routes := node.Routes.(*RoutePort)
 		routes.RouteIn(r.Out)
 	} else {
 		targetRoute.RouteIn(r.Out)

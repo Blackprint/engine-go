@@ -1,24 +1,41 @@
 package engine
 
 import (
-	"reflect"
-
 	"github.com/blackprint/engine-go/utils"
 )
 
+type embedNode interface {
+	Init()
+	Request(*Cable)
+	Update(*Cable)
+	Imported(map[string]any)
+	Destroy()
+	SyncIn(id string, data ...any)
+}
+
+type EmbedNode struct {
+	embedNode
+	Node  *Node
+	Iface *Interface
+	Ref   *referencesShortcut
+}
+
+// To be overriden by module developer
+func (n *EmbedNode) Init()                         {}
+func (n *EmbedNode) Request(*Cable)                {}
+func (n *EmbedNode) Update(*Cable)                 {}
+func (n *EmbedNode) Imported(map[string]any)       {}
+func (n *EmbedNode) Destroy()                      {}
+func (n *EmbedNode) SyncIn(id string, data ...any) {}
+
 type Node struct {
-	*CustomEvent
 	Instance     *Instance
 	Iface        *Interface
 	DisablePorts bool
 	Routes       *RoutePort
+	Embed        embedNode
 
-	Ref *ReferencesShortcut
-
-	// Port Template
-	TOutput *NodePortTemplate
-	TInput  *NodePortTemplate
-	// TProperty *NodePortTemplate
+	Ref *referencesShortcut
 
 	Output map[string]*PortOutputGetterSetter
 	Input  map[string]*PortInputGetterSetter
@@ -27,17 +44,32 @@ type Node struct {
 	QFuncInstance *BPFunction
 }
 
-type NodeHandler func(*Instance) any // any = extends *engine.Node
-type InterfaceHandler func(any) any  // any = extends *engine.Node, *engine.Interface
+// Proxies, for library only
+func (n *Node) Init()                         { n.Embed.Init() }
+func (n *Node) Request(c *Cable)              { n.Embed.Request(c) }
+func (n *Node) Update(c *Cable)               { n.Embed.Update(c) }
+func (n *Node) Imported(d map[string]any)     { n.Embed.Imported(d) }
+func (n *Node) Destroy()                      { n.Embed.Destroy() }
+func (n *Node) SyncIn(id string, data ...any) { n.Embed.SyncIn(id, data) }
+
+type NodeMetadata struct {
+	// Port Template
+	Output NodePortTemplate
+	Input  NodePortTemplate
+	// Property *NodePortTemplate
+}
+
+type NodeConstructor func(*Instance) *Node
+type InterfaceConstructor func(*Node) *Interface
 
 // QNodeList = Private function, for internal library only
-var QNodeList = map[string]NodeHandler{}
+var QNodeList = map[string]NodeConstructor{}
 
 // QInterfaceList = Private function, for internal library only
-var QInterfaceList = map[string]InterfaceHandler{}
+var QInterfaceList = map[string]InterfaceConstructor{}
 
 // This will return *pointer
-func (n *Node) SetInterface(namespace ...string) any {
+func (n *Node) SetInterface(namespace ...string) *Interface {
 	if len(namespace) == 0 {
 		// Default interface (BP/Default)
 		iface := &Interface{QInitialized: true, Importing: true}
@@ -58,17 +90,17 @@ func (n *Node) SetInterface(namespace ...string) any {
 		panic(".registerInterface() must return pointer")
 	}
 
-	data := utils.GetProperty(iface, "Data")
+	data := iface.Data
 	if data != nil {
 		_data := data.(InterfaceData)
 
 		for _, port := range _data {
-			utils.SetProperty(port, "Iface", iface)
+			port.Iface = iface
 		}
 	}
 
-	utils.SetProperty(iface, "QInitialized", true)
-	utils.SetProperty(iface, "Importing", true)
+	iface.QInitialized = true
+	iface.Importing = true
 	n.Iface = iface
 	n.CustomEvent = &CustomEvent{}
 
@@ -76,18 +108,14 @@ func (n *Node) SetInterface(namespace ...string) any {
 }
 
 func (n *Node) CreatePort(which string, name string, config_ any) *Port {
-	port := utils.CallFunction(n.Iface, "QCreatePort", &[]reflect.Value{
-		reflect.ValueOf(which),
-		reflect.ValueOf(name),
-		reflect.ValueOf(config_),
-	}).(*Port)
+	port := n.Iface.QCreatePort(which, name, config_)
 
 	if which != "input" {
-		ifacePort := utils.GetProperty(n.Iface, "Input").(map[string]*Port)
+		ifacePort := n.Iface.Input.(map[string]*Port)
 		ifacePort[name] = port
 		n.Input[name] = &PortInputGetterSetter{port: port}
 	} else if which != "output" {
-		ifacePort := utils.GetProperty(n.Iface, "Output").(map[string]*Port)
+		ifacePort := n.Iface.Output.(map[string]*Port)
 		ifacePort[name] = port
 		n.Output[name] = &PortOutputGetterSetter{port: port}
 	} else {
@@ -100,9 +128,9 @@ func (n *Node) CreatePort(which string, name string, config_ any) *Port {
 func (n *Node) RenamePort(which string, name string, to string) {
 	var portList map[string]*Port
 	if which == "input" {
-		portList = utils.GetProperty(n.Iface, "Input").(map[string]*Port)
+		portList = n.Iface.Input.(map[string]*Port)
 	} else if which == "output" {
-		portList = utils.GetProperty(n.Iface, "Output").(map[string]*Port)
+		portList = n.Iface.Output.(map[string]*Port)
 	} else {
 		panic("Can only rename port for 'input' and 'output'")
 	}
@@ -135,7 +163,7 @@ func (n *Node) DeletePort(which string, name string) {
 	var port *Port
 
 	if which != "input" {
-		ports = utils.GetProperty(n.Iface, "Input").(map[string]*Port)
+		ports = n.Iface.Input.(map[string]*Port)
 		port = ports[name]
 		if port == nil {
 			return
@@ -143,7 +171,7 @@ func (n *Node) DeletePort(which string, name string) {
 
 		delete(n.Input, name)
 	} else if which != "output" {
-		ports = utils.GetProperty(n.Iface, "Output").(map[string]*Port)
+		ports = n.Iface.Output.(map[string]*Port)
 		port = ports[name]
 		if port == nil {
 			return
@@ -161,11 +189,3 @@ func (n *Node) DeletePort(which string, name string) {
 func (n *Node) Log(message string) {
 	n.Instance.QLog(n.Iface, message)
 }
-
-// To be overriden by module developer
-func (n *Node) Init()                          {}
-func (n *Node) Request(*Cable)                 {}
-func (n *Node) Update(*Cable)                  {}
-func (n *Node) Imported(map[string]any)        {}
-func (n *Node) Destroy()                       {}
-func (n *Node) SyncOut(id string, data ...any) {}

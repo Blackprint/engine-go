@@ -251,7 +251,7 @@ func getFnPortType(port *engine.Port, which string, parentNode any, ref *engine.
 	}
 }
 
-func registerFnVarNode() {
+func init() {
 	RegisterNode("BP/FnVar/Input", func(i *engine.Instance) any {
 		node := &fnVarInput{
 			Node: &engine.Node{

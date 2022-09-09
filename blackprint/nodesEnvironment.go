@@ -67,7 +67,7 @@ type iEnvSet struct {
 	*bpEnvGetSet
 }
 
-func registerEnvNode() {
+func init() {
 	RegisterNode("BP/Env/Get", func(i *engine.Instance) any {
 		node := &bpEnvGet{
 			Node: &engine.Node{

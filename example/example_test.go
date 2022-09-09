@@ -11,7 +11,7 @@ import (
 
 // for benchmarking
 var instance *engine.Instance
-var input *InputSimpleIFace
+var input *engine.Interface
 
 func TestMain(m *testing.M) {
 	log.SetFlags(0)
@@ -28,20 +28,20 @@ func TestMain(m *testing.M) {
 
 	// Because Golang lack of getter and setter, We need to get or set like calling a function
 	// Anyway.. lets to run something :)
-	button := instance.Iface["myButton"].(*ButtonSimpleIFace)
+	button := instance.Iface["myButton"].Embed.(*ButtonSimpleIFace)
 
 	log.Println("\n>> I'm clicking the button")
 	button.Clicked(123)
 
-	logger := instance.Iface["myLogger"].(*LoggerIFace)
+	logger := instance.Iface["myLogger"].Embed.(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + logger.Log().(string))
 
 	log.Println("\n>> I'm writing something to the input box")
-	input = instance.Iface["myInput"].(*InputSimpleIFace)
+	input = instance.Iface["myInput"]
 	input.Data["value"].Set("hello wrold")
 
 	// you can also use getNodes if you haven't set the ID
-	myLogger := instance.GetNodes("Example/Display/Logger")[0].(*LoggerNode).Iface.(*LoggerIFace)
+	myLogger := instance.GetNodes("Example/Display/Logger")[0].Embed.(*LoggerIFace)
 	log.Println("\n>> I got the output value: " + myLogger.Log().(string))
 }
 

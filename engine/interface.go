@@ -9,6 +9,27 @@ import (
 
 var portList = [3]string{"Input", "Output", "Property"}
 
+type embedInterface interface {
+	Init()
+	Request(*Cable)
+	Update(*Cable)
+	Imported(map[string]any)
+	Destroy()
+	SyncIn(id string, data ...any)
+}
+
+type EmbedInterface struct {
+	embedInterface
+	Node  *Node
+	Iface *Interface
+	Ref   *referencesShortcut
+}
+
+// To be overriden by module developer
+func (iface *EmbedInterface) Init()                        {}
+func (iface *EmbedInterface) Destroy()                     {}
+func (iface *EmbedInterface) Imported(data map[string]any) {}
+
 type InterfaceData map[string]getterSetter
 type Interface struct {
 	*CustomEvent
@@ -22,9 +43,10 @@ type Interface struct {
 	Output map[string]*Port
 	Input  map[string]*Port
 	Data   InterfaceData
-	Node   any // any = extends *engine.Node
+	Node   *Node
+	Embed  embedInterface
 
-	Ref     *ReferencesShortcut
+	Ref     *referencesShortcut
 	IsGhost bool
 
 	Importing bool
@@ -39,9 +61,9 @@ type Interface struct {
 }
 
 // To be overriden
-func (iface *Interface) Init()             {}
-func (iface *Interface) Destroy()          {}
-func (iface *Interface) Imported(data any) {}
+func (i *Interface) Init()                        { i.Embed.Init() }
+func (i *Interface) Destroy()                     { i.Embed.Destroy() }
+func (i *Interface) Imported(data map[string]any) { i.Embed.Imported(data) }
 
 // Internal blackprint function node initialization
 func (iface *Interface) QBpFnInit() {}
@@ -49,26 +71,25 @@ func (iface *Interface) QBpFnInit() {}
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
-func (iface *Interface) QPrepare() {
+func (iface *Interface) QPrepare(meta *NodeMetadata) {
 	iface.CustomEvent = &CustomEvent{}
-	ref := &ReferencesShortcut{}
+	ref := &referencesShortcut{}
 
 	node := iface.Node
-	utils.SetProperty(node, "Ref", ref)
+	node.Ref = ref
 	iface.Ref = ref
 
-	utils.SetProperty(node, "Route", &RoutePort{Iface: iface})
+	node.Route = &RoutePort{Iface: iface}
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]
-		port := *utils.GetPropertyRef(node, "T"+which).(*map[string]any) // get value by property name
+		port := utils.GetProperty(meta, which).(NodePortTemplate) // get value by property name
 
 		if port == nil {
 			continue
 		}
 
 		ifacePort := map[string]*Port{}
-		utils.SetProperty(iface, which, ifacePort)
 
 		var inputUpgradePort map[string]*PortInputGetterSetter
 		var outputUpgradePort map[string]*PortOutputGetterSetter
@@ -78,13 +99,15 @@ func (iface *Interface) QPrepare() {
 			ref.Input = inputUpgradePort
 			ref.IInput = ifacePort
 
-			utils.SetProperty(node, which, inputUpgradePort)
+			iface.Input = ifacePort
+			node.Input = inputUpgradePort
 		} else {
 			outputUpgradePort = map[string]*PortOutputGetterSetter{}
 			ref.Output = outputUpgradePort
 			ref.IOutput = ifacePort
 
-			utils.SetProperty(node, which, outputUpgradePort)
+			iface.Output = ifacePort
+			node.Output = outputUpgradePort
 		}
 
 		// name: string

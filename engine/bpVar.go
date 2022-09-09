@@ -2,8 +2,6 @@ package engine
 
 import (
 	"reflect"
-
-	"github.com/blackprint/engine-go/utils"
 )
 
 type bpVarValue struct {
@@ -33,10 +31,8 @@ type BPVariable struct {
 
 func (b *BPVariable) Destroy() {
 	for _, iface := range b.Used {
-		ins := utils.GetProperty((utils.GetProperty(iface, "Node")), "Instance").(*Instance)
-		utils.CallFunction(ins, "DeleteNode", &[]reflect.Value{
-			reflect.ValueOf(iface),
-		})
+		ins := (iface.Node).Instance.(*Instance)
+		ins.DeleteNode(iface)
 	}
 
 	b.Used = b.Used[:0]

@@ -10,116 +10,104 @@ import (
 	"github.com/blackprint/engine-go/types"
 )
 
-// This will be called from example.go
-func RegisterMath() {
-	RegisterMathMultiply()
-	RegisterMathRandom()
-}
-
-// ============
+// ============ MathMultiple Node ============
 type MathMultiple struct {
-	engine.Node
+	engine.EmbedNode
 }
 
 // Your own processing mechanism
-func (node *MathMultiple) Multiply() int {
-	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", node.Input["A"].Get().(int), node.Input["B"].Get().(int))
-	return node.Input["A"].Get().(int) * node.Input["B"].Get().(int)
+func (this *MathMultiple) Multiply() int {
+	log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mMultiplying %d with %d\x1b[0m\n", this.Node.Input["A"].Get().(int), this.Node.Input["B"].Get().(int))
+	return this.Node.Input["A"].Get().(int) * this.Node.Input["B"].Get().(int)
 }
 
 // When any output value from other node are updated
 // Let's immediately change current node result
-func (node *MathMultiple) Update(cable *engine.Cable) {
-	node.Output["Result"].Set(node.Multiply())
+func (this *MathMultiple) Update(cable *engine.Cable) {
+	this.Node.Output["Result"].Set(this.Multiply())
 }
 
-func RegisterMathMultiply() {
-	Blackprint.RegisterNode("Example/Math/Multiply", func(instance *engine.Instance) any {
-		var node MathMultiple
-		node = MathMultiple{
-			Node: engine.Node{
+func init() {
+	Blackprint.RegisterNode("Example/Math/Multiply", &engine.NodeMetadata{
+		Input: engine.NodePortTemplate{
+			"Exec": engine.Ports.Trigger(func(port *engine.Port) {
+				port.Iface.Node.Output["Result"].Set(port.Iface.Node.Embed.(*MathMultiple).Multiply())
+				log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", port.Iface.Node.Output["Result"].Get())
+			}),
+			"A": types.Int,
+			"B": types.Any,
+		},
+
+		Output: engine.NodePortTemplate{
+			"Result": types.Int,
+		},
+	},
+		func(instance *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: instance,
+				Embed:    &MathMultiple{},
+			}
 
-				// Node's Input Port Template
-				TInput: engine.NodePortTemplate{
-					"Exec": engine.Ports.Trigger(func(port *engine.Port) {
-						node.Output["Result"].Set(node.Multiply())
-						log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", node.Output["Result"].Get())
-					}),
-					"A": types.Int,
-					"B": types.Any,
-				},
+			iface := node.SetInterface()
+			iface.Title = "Multiply"
 
-				// Node's Output Port Template
-				TOutput: engine.NodePortTemplate{
-					"Result": types.Int,
-				},
-			},
-		}
+			iface.On("cable.connect", func(event any) {
+				ev := event.(engine.CableEvent)
+				log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
+			})
 
-		iface := node.SetInterface().(*engine.Interface) // default interface
-		iface.Title = "Multiply"
-
-		node.On("cable.connect", func(event any) {
-			ev := event.(engine.CableEvent)
-			log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mCable connected from %s (%s) to %s (%s)\x1b[0m\n", ev.Port.Iface.Title, ev.Port.Name, ev.Target.Iface.Title, ev.Target.Name)
+			return node
 		})
-
-		return &node
-	})
 }
 
-// ============
+// ============ MathRandom Node ============
 type MathRandom struct {
-	engine.Node
+	engine.EmbedNode
 	Executed bool
 }
 
 // When the connected node is requesting for the output value
-func (node *MathRandom) Request(port *engine.Port, iface_ any) bool {
+func (this *MathRandom) Request(cable *engine.Cable) {
 	// Only run once this node never been executed
 	// Return false if no value was changed
-	if node.Executed == true {
-		return false
+	if this.Executed == true {
+		return
 	}
 
-	iface := iface_.(*engine.Interface)
-	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", port.Name, iface.Title)
+	log.Printf("\x1b[1m\x1b[33mMath\\Random:\x1b[0m \x1b[33mValue request for port: %s, from node: %s\x1b[0m\n", cable.Output.Name, cable.Input.Iface.Title)
 
 	// Let's create the value for him
-	node.Input["Re-seed"].Call()
+	this.Node.Input["Re-seed"].Call()
 
-	return true
+	return
 }
 
-func RegisterMathRandom() {
-	Blackprint.RegisterNode("Example/Math/Random", func(instance *engine.Instance) any {
-		var node MathRandom
-		node = MathRandom{
-			Executed: false,
-			Node: engine.Node{
+func init() {
+	Blackprint.RegisterNode("Example/Math/Random", &engine.NodeMetadata{
+		Input: engine.NodePortTemplate{
+			"Re-seed": engine.Ports.Trigger(func(port *engine.Port) {
+				node := port.Iface.Node
+				node.Embed.(*MathRandom).Executed = true
+
+				byt := make([]byte, 2)
+				rand.Read(byt)
+				node.Output["Out"].Set(int(binary.BigEndian.Uint16(byt[:])) % 100)
+			}),
+		},
+
+		Output: engine.NodePortTemplate{
+			"Out": types.Int,
+		},
+	},
+		func(instance *engine.Instance) *engine.Node {
+			node := &engine.Node{
 				Instance: instance,
+				Embed:    &MathRandom{},
+			}
 
-				// Node's Input Port Template
-				TInput: engine.NodePortTemplate{
-					"Re-seed": engine.Ports.Trigger(func(port *engine.Port) {
-						node.Executed = true
-						byt := make([]byte, 2)
-						rand.Read(byt)
-						node.Output["Out"].Set(int(binary.BigEndian.Uint16(byt[:])) % 100)
-					}),
-				},
+			iface := node.SetInterface()
+			iface.Title = "Random"
 
-				// Node's Output Port Template
-				TOutput: engine.NodePortTemplate{
-					"Out": types.Int,
-				},
-			},
-		}
-
-		iface := node.SetInterface().(*engine.Interface) // default interface
-		iface.Title = "Random"
-
-		return &node
-	})
+			return node
+		})
 }

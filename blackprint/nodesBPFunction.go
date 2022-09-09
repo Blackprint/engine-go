@@ -255,7 +255,7 @@ func (b *bpFnInOut) deletePort(name string) {
 	}
 }
 
-func registerBpFuncNode() {
+func init() {
 	RegisterNode("BP/Fn/Input", func(i *engine.Instance) any {
 		node := &nodeInput{
 			Node: &engine.Node{

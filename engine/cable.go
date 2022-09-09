@@ -78,9 +78,7 @@ func (c *Cable) QConnected() {
 	c.Input.Emit("value", inputEv)
 	c.Input.Iface.Emit("value", inputEv)
 
-	utils.CallFunction(c.Input.Iface.Node, "Update", &[]reflect.Value{
-		reflect.ValueOf(c),
-	})
+	c.Input.Iface.Node.Update(c)
 }
 
 // For debugging
@@ -129,7 +127,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 
 			c.Owner.Emit("disconnect", temp)
 			c.Owner.Iface.Emit("cable.disconnect", temp)
-			ins := utils.GetPropertyRef(c.Owner.Iface.Node, "Instance").(*Instance)
+			ins := c.Owner.Iface.Node.Instance.(*Instance)
 			ins.Emit("cable.disconnect", temp)
 
 			alreadyEmitToInstance = true
@@ -155,7 +153,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 		c.Target.Iface.Emit("cable.disconnect", temp)
 
 		if alreadyEmitToInstance == false {
-			ins := utils.GetPropertyRef(c.Target.Iface.Node, "Instance").(*Instance)
+			ins := c.Target.Iface.Node.Instance.(*Instance)
 			ins.Emit("cable.disconnect", temp)
 		}
 	}

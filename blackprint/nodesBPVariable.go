@@ -1,7 +1,6 @@
 package blackprint
 
 import (
-	"reflect"
 	"strconv"
 
 	"github.com/blackprint/engine-go/engine"
@@ -47,7 +46,7 @@ func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*engine.BPV
 	b.Data["name"] = &engine.GetterSetter{Value: name}
 	b.Data["scope"] = &engine.GetterSetter{Value: scopeId}
 
-	thisInstance := utils.GetProperty(b.Node, "Instance").(*engine.Instance)
+	thisInstance := b.Node.Instance.(*engine.Instance)
 	funcInstance := thisInstance.QFuncMain
 	if funcInstance == nil {
 		funcInstance.Node.QFuncInstance
@@ -105,7 +104,7 @@ func (b *bpVarGetSet) UseType_(port *engine.Port, targetPort *engine.Port) {
 
 	// Also create port for other node that using $this variable
 	for _, item := range b.QBpVarRef.Used {
-		utils.CallFunction(item, "QReinitPort", utils.EmptyArgs)
+		item.QReinitPort()
 	}
 }
 
@@ -162,16 +161,11 @@ func (b *iVarSet) QReinitPort() *engine.Port {
 	node := b.Node
 
 	if b.Output["Val"] != nil {
-		utils.CallFunction(node, "DeletePort", &[]reflect.Value{
-			reflect.ValueOf("Val"),
-		})
+		node.DeletePort("Val")
 	}
 
-	ref := utils.GetProperty(b.Node, "Output").(map[string]*engine.PortOutputGetterSetter)
-	utils.CallFunction(b.Node, "CreatePort", &[]reflect.Value{
-		reflect.ValueOf("Val"),
-		reflect.ValueOf(temp.Type),
-	})
+	ref := b.Node.Output.(map[string]*engine.PortOutputGetterSetter)
+	b.Node.CreatePort("Val", temp.Type)
 
 	if temp.Type == types.Function {
 		b.QEventListen = "call"
@@ -226,32 +220,21 @@ func (b *iVarGet) QReinitPort() *engine.Port {
 	temp := b.QBpVarRef
 
 	if _, exist := input["Val"]; exist {
-		utils.CallFunction(node, "DeletePort", &[]reflect.Value{
-			reflect.ValueOf("Input"),
-			reflect.ValueOf("Val"),
-		})
+		node.DeletePort("Input", "Val")
 	}
 
 	if temp.Type == types.Function {
-		utils.CallFunction(node, "CreatePort", &[]reflect.Value{
-			reflect.ValueOf("Input"),
-			reflect.ValueOf("Val"),
-			reflect.ValueOf(engine.Ports.Trigger(func(p *engine.Port) {
-				temp.Emit("call", nil)
-			})),
-		})
+		node.CreatePort("Input", "Val", engine.Ports.Trigger(func(p *engine.Port) {
+			temp.Emit("call", nil)
+		}))
 	} else {
-		utils.CallFunction(node, "CreatePort", &[]reflect.Value{
-			reflect.ValueOf("Input"),
-			reflect.ValueOf("Val"),
-			reflect.ValueOf(temp.Type),
-		})
+		node.CreatePort("Input", "Val", temp.Type)
 	}
 
 	return b.Input["Val"]
 }
 
-func registerBPVarNode() {
+func init() {
 	RegisterNode("BP/Var/Set", func(i *engine.Instance) any {
 		node := &bpVarSet{
 			Node: &engine.Node{

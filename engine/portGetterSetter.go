@@ -1,10 +1,7 @@
 package engine
 
 import (
-	"reflect"
-
 	"github.com/blackprint/engine-go/types"
-	"github.com/blackprint/engine-go/utils"
 )
 
 type PortInputGetterSetter struct {
@@ -53,10 +50,7 @@ func (gs *PortInputGetterSetter) Get() any {
 
 		if target.Value == nil {
 			port.Iface.QRequesting = true
-			utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
-				reflect.ValueOf(target),
-				reflect.ValueOf(port.Iface),
-			})
+			target.Iface.Node.Request(target, port.Iface)
 			port.Iface.QRequesting = false
 		}
 
@@ -92,10 +86,7 @@ func (gs *PortInputGetterSetter) Get() any {
 
 		if target.Value == nil {
 			port.Iface.QRequesting = true
-			utils.CallFunction(target.Iface.Node, "Request", &[]reflect.Value{
-				reflect.ValueOf(target),
-				reflect.ValueOf(port.Iface),
-			})
+			target.Iface.Node.Request(target, port.Iface)
 			port.Iface.QRequesting = false
 		}
 

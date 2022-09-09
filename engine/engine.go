@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -17,15 +16,15 @@ var Event = &CustomEvent{}
 type NodePortTemplate map[string]any // any = reflect.Kind | portFeature
 type Instance struct {
 	*CustomEvent
-	Iface        map[string]any // Storing with node id if exist
-	IfaceList    []any          // Storing with node index
+	Iface        map[string]*Interface // Storing with node id if exist
+	IfaceList    []*Interface          // Storing with node index
 	settings     map[string]bool
 	DisablePorts bool
 	PanicOnError bool
 
 	Variables map[string]*BPVariable
 	Functions map[string]*BPFunction
-	Ref       map[string]*ReferencesShortcut
+	Ref       map[string]*referencesShortcut
 
 	QFuncMain     *BPFunction // => *engine.Interface
 	QFuncInstance *Instance
@@ -33,8 +32,8 @@ type Instance struct {
 
 func New() *Instance {
 	return &Instance{
-		Iface:        map[string]any{},
-		IfaceList:    map[int]any{},
+		Iface:        map[string]*Interface{},
+		IfaceList:    []*Interface{},
 		settings:     map[string]bool{},
 		PanicOnError: true,
 	}
@@ -158,7 +157,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 			temp, inserted = instance.CreateNode(namespace, iface, inserted)
 
 			ifaceList[iface.I] = temp
-			utils.CallFunction(temp, "QBpFnInit", utils.EmptyArgs)
+			temp.QBpFnInit()
 		}
 	}
 
@@ -177,7 +176,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 			// If have output connection
 			out := ifaceJSON.Output
 			if out != nil {
-				Output := *utils.GetPropertyRef(iface, "Output").(*map[string]*Port)
+				Output := *iface.Output.(*map[string]*Port)
 
 				// Every output port that have connection
 				for portName, ports := range out {
@@ -206,11 +205,11 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 						targetNode := ifaceList[target.I]
 
 						// output can only meet input port
-						Input := *utils.GetPropertyRef(targetNode, "Input").(*map[string]*Port)
+						Input := *targetNode.Input.(*map[string]*Port)
 						linkPortB := Input[target.Name]
 
 						if linkPortB == nil {
-							targetTitle := utils.GetProperty(targetNode, "Title").(string)
+							targetTitle := targetNode.Title.(string)
 
 							if targetNode.QEnum == nodes.BPFnOutput {
 								linkPortB = targetNode.AddPort(linkPortA, target)
@@ -229,8 +228,8 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 						}
 
 						// For Debugging ->
-						// Title := utils.GetProperty(iface, "Title").(string)
-						// targetTitle := utils.GetProperty(targetNode, "Title").(string)
+						// Title := iface.Title.(string)
+						// targetTitle := targetNode.Title.(string)
 						// fmt.Printf("%s.%s => %s.%s\n", Title, linkPortA.Name, targetTitle, linkPortB.Name)
 						// <- For Debugging
 
@@ -244,7 +243,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 
 	// Call nodes init after creation processes was finished
 	for _, val := range inserted {
-		utils.CallFunction(val, "Init", utils.EmptyArgs)
+		val.Init()
 	}
 
 	return
@@ -327,22 +326,22 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 	return temp
 }
 
-func (instance *Instance) GetNode(id any) any {
+// Deprecated, use instance.Iface or instance.IfaceList instead
+func (instance *Instance) GetNode(id any) *Interface {
 	for _, val := range instance.IfaceList {
-		temp := reflect.ValueOf(val).Elem()
-		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
-			return utils.GetProperty(val, "Node")
+		if val.Id == id.(string) || val.I == id.(int) {
+			return val
 		}
 	}
 	return nil
 }
 
-func (instance *Instance) GetNodes(namespace string) []any {
-	var got []any // any = extends 'engine.Node'
+func (instance *Instance) GetNodes(namespace string) []*Interface {
+	var got []*Interface
 
 	for _, val := range instance.IfaceList {
-		if utils.GetProperty(val, "Namespace").(string) == namespace {
-			got = append(got, utils.GetProperty(val, "Node"))
+		if val.Namespace == namespace {
+			got = append(got, val)
 		}
 	}
 
@@ -352,8 +351,9 @@ func (instance *Instance) GetNodes(namespace string) []any {
 // ToDo: sync with JS, when creating function node this still broken
 func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []any) (any, []any) {
 	func_ := QNodeList[namespace]
-	var node any // *node: extends engine.Node
+	var node *Node
 	var isFuncNode bool
+
 	if func_ == nil {
 		if strings.HasPrefix(namespace, "BPI/F/") {
 			temp := instance.Functions[namespace]
@@ -381,21 +381,21 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	}
 
 	// *iface: extends engine.Interface
-	iface := utils.GetProperty(node, "Iface")
-	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
+	iface := node.Iface
+	if iface == nil || iface.QInitialized.(bool) == false {
 		panic(namespace + ": Node interface was not found, do you forget to call node.SetInterface() ?")
 	}
 
-	utils.SetProperty(iface, "Node", node)
-	utils.SetProperty(iface, "Namespace", namespace)
+	iface.Node = node
+	iface.Namespace = namespace
 
 	// Create the linker between the nodes and the iface
 	if isFuncNode == false {
-		utils.CallFunction(iface, "QPrepare", utils.EmptyArgs)
+		iface.QPrepare()
 	}
 
 	if options.Id != "" {
-		utils.SetProperty(iface, "Id", options.Id)
+		iface.Id = options.Id
 		instance.Iface[options.Id] = iface
 		instance.Ref[options.Id] = iface.Ref
 
@@ -405,14 +405,14 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		}
 	}
 
-	utils.SetProperty(iface, "I", options.I)
+	iface.I = options.I
 	instance.IfaceList[options.I] = iface
 
 	if options.InputDefault != nil {
 		iface.QImportInputs(options.InputDefault)
 	}
 
-	savedData := &[]reflect.Value{reflect.ValueOf(options.Data)}
+	savedData := options.Data.(map[string]any)
 
 	if options.OutputSwitch != nil {
 		for key, val := range options.OutputSwitch {
@@ -426,17 +426,17 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		}
 	}
 
-	utils.SetProperty(iface, "Importing", false)
+	iface.Importing = false
 
-	utils.CallFunction(iface, "Imported", savedData)
-	utils.CallFunction(node, "Imported", savedData)
+	iface.Imported(savedData)
+	node.Imported(savedData)
 
-	utils.CallFunction(iface, "Init", utils.EmptyArgs)
+	iface.Init()
 	if nodes != nil {
 		nodes = append(nodes, node)
 	} else {
 		// Init now if not A batch creation
-		utils.CallFunction(node, "Init", utils.EmptyArgs)
+		node.Init()
 	}
 
 	return iface, nodes
@@ -550,7 +550,7 @@ func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
 
 type NodeLogEvent struct {
 	Instance   *Instance
-	Iface      any
+	Iface      *Interface
 	IfaceTitle string
 	Message    string
 }
@@ -559,7 +559,7 @@ func (instance *Instance) QLog(iface any, message string) {
 	evData := NodeLogEvent{
 		Instance:   instance,
 		Iface:      iface,
-		IfaceTitle: utils.GetProperty(iface, "Title").(string),
+		IfaceTitle: iface.Title.(string),
 		Message:    message,
 	}
 
