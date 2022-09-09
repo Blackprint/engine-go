@@ -18,7 +18,7 @@ type PortStructTemplate struct {
 type Port struct {
 	CustomEvent
 	Name        string
-	Name_       *RefPortName // For BPFunction only, ToDo: fill alternate name, search in engine-php _name for hints
+	Name_       *refPortName // For bpFunction only, ToDo: fill alternate name, search in engine-php _name for hints
 	Type        reflect.Kind
 	Types       []reflect.Kind
 	Cables      []*Cable
@@ -28,13 +28,13 @@ type Port struct {
 	Value       any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Sync        bool
 	Feature     int
-	QFeature    *PortFeature // For caching the configuration
+	QFeature    *portFeature // For caching the configuration
 	Struct      map[string]PortStructTemplate
 	Splitted    bool
 	AllowResync bool // Retrigger connected node's .update when the output value is similar
 
 	// Only in Golang we need to do this '-'
-	RoutePort *RoutePort
+	RoutePort *routePort
 
 	// Internal/Private property
 	QCache          any
@@ -48,8 +48,8 @@ type Port struct {
 }
 
 /** For internal library use only */
-// For BPFunction only
-type RefPortName struct {
+// For bpFunction only
+type refPortName struct {
 	Name string
 }
 
@@ -69,7 +69,7 @@ const (
 )
 
 // Port feature
-type PortFeature struct {
+type portFeature struct {
 	Id    int
 	Type  reflect.Kind
 	Types []reflect.Kind
@@ -77,7 +77,7 @@ type PortFeature struct {
 	Func  func(*Port)
 }
 
-func (port *Port) QGetPortFeature() *PortFeature {
+func (port *Port) QGetPortFeature() *portFeature {
 	return port.QFeature
 }
 func (port *Port) DisconnectAll() {
@@ -94,10 +94,10 @@ func (port *Port) DisconnectAll() {
 // ./portGetterSetter.go
 func (port *Port) CreateLinker() getterSetter {
 	if port.Source == PortInput {
-		return &PortInputGetterSetter{port: port}
+		return &portInputGetterSetter{port: port}
 	}
 
-	return &PortOutputGetterSetter{port: port}
+	return &portOutputGetterSetter{port: port}
 }
 
 func (port *Port) sync() {
@@ -345,7 +345,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	return true
 }
 func (port *Port) ConnectPort(portTarget *Port) bool {
-	cable := NewCable(portTarget, port)
+	cable := newCable(portTarget, port)
 	if portTarget.QGhost {
 		cable.QGhost = true
 	}

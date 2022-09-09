@@ -70,7 +70,7 @@ type iEnvSet struct {
 
 func init() {
 	QNodeList["BP/Env/Get"] = &NodeRegister{
-		Output: NodePortTemplate{
+		Output: PortTemplate{
 			"Val": types.String,
 		},
 		Constructor: func(node *Node) {
@@ -98,7 +98,7 @@ func init() {
 	}
 
 	QNodeList["BP/Env/Set"] = &NodeRegister{
-		Input: NodePortTemplate{
+		Input: PortTemplate{
 			"Val": types.String,
 		},
 		Constructor: func(node *Node) {

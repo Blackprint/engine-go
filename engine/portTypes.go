@@ -6,10 +6,10 @@ import (
 
 type portObject struct{}
 
-var Ports *portObject
+var QPorts *portObject
 
 func init() {
-	Ports = &portObject{}
+	QPorts = &portObject{}
 }
 
 /* This port can contain multiple cable as input
@@ -17,8 +17,8 @@ func init() {
  * it's only one type, not union
  * for union port, please split it to different port to handle it
  */
-func (*portObject) ArrayOf(type_ reflect.Kind) *PortFeature {
-	return &PortFeature{
+func (*portObject) ArrayOf(type_ reflect.Kind) *portFeature {
+	return &portFeature{
 		Id:   PortTypeArrayOf,
 		Type: type_,
 	}
@@ -28,8 +28,8 @@ func (*portObject) ArrayOf(type_ reflect.Kind) *PortFeature {
  * type = Type Data that allowed for the Port
  * value = default value for the port
  */
-func (*portObject) Default(type_ reflect.Kind, val any) *PortFeature {
-	return &PortFeature{
+func (*portObject) Default(type_ reflect.Kind, val any) *portFeature {
+	return &portFeature{
 		Id:    PortTypeDefault,
 		Type:  type_,
 		Value: val,
@@ -39,8 +39,8 @@ func (*portObject) Default(type_ reflect.Kind, val any) *PortFeature {
 /* This port will be used as a trigger or callable input port
  * func (*portObject) = callback when the port was being called as a function
  */
-func (*portObject) Trigger(callback func(*Port)) *PortFeature {
-	return &PortFeature{
+func (*portObject) Trigger(callback func(*Port)) *portFeature {
+	return &portFeature{
 		Id:   PortTypeTrigger,
 		Func: callback,
 	}
@@ -49,8 +49,8 @@ func (*portObject) Trigger(callback func(*Port)) *PortFeature {
 /* This port can allow multiple different types
  * like an 'any' port, but can only contain one value
  */
-func (*portObject) Union(types []reflect.Kind) *PortFeature {
-	return &PortFeature{
+func (*portObject) Union(types []reflect.Kind) *portFeature {
+	return &portFeature{
 		Id:    PortTypeUnion,
 		Types: types,
 	}
@@ -59,16 +59,16 @@ func (*portObject) Union(types []reflect.Kind) *PortFeature {
 /* This port can allow multiple different types
  * like an 'any' port, but can only contain one value
  */
-func (*portObject) StructOf(type_ reflect.Kind, structure map[string]PortStructTemplate) *PortFeature {
-	return &PortFeature{
+func (*portObject) StructOf(type_ reflect.Kind, structure map[string]PortStructTemplate) *portFeature {
+	return &portFeature{
 		Id:    PortTypeStructOf,
 		Type:  type_,
 		Value: structure,
 	}
 }
 
-func (*portObject) Route() *PortFeature {
-	return &PortFeature{
+func (*portObject) Route() *portFeature {
+	return &portFeature{
 		Id: PortTypeRoute,
 	}
 }

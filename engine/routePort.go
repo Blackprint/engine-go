@@ -5,7 +5,7 @@ import (
 	"github.com/blackprint/engine-go/utils"
 )
 
-type RoutePort struct {
+type routePort struct {
 	*Port
 	In         []*Cable
 	Out        *Cable
@@ -18,8 +18,8 @@ type RoutePort struct {
 	QIsPaused bool
 }
 
-func newRoutePort(iface *Interface) *RoutePort {
-	temp := &RoutePort{
+func newRoutePort(iface *Interface) *routePort {
+	temp := &routePort{
 		Iface:   iface,
 		IsRoute: true,
 	}
@@ -30,13 +30,13 @@ func newRoutePort(iface *Interface) *RoutePort {
 }
 
 // Connect other route port (this .out to other .in port)
-func (r *RoutePort) RouteTo(iface *Interface) {
+func (r *routePort) RouteTo(iface *Interface) {
 	if r.Out != nil {
 		r.Out.Disconnect()
 	}
 
 	if iface == nil {
-		cable := NewCable(r.Port, nil)
+		cable := newCable(r.Port, nil)
 		cable.IsRoute = true
 		r.Out = cable
 		return
@@ -44,7 +44,7 @@ func (r *RoutePort) RouteTo(iface *Interface) {
 
 	port := iface.Node.Routes
 
-	cable := NewCable(r.Port, port.Port)
+	cable := newCable(r.Port, port.Port)
 	cable.IsRoute = true
 	cable.Output = r.Port
 	r.Out = cable
@@ -53,7 +53,7 @@ func (r *RoutePort) RouteTo(iface *Interface) {
 	cable.QConnected()
 }
 
-func (r *RoutePort) ConnectCable(cable *Cable) bool {
+func (r *routePort) ConnectCable(cable *Cable) bool {
 	if utils.Contains(r.In, cable) {
 		return false
 	}
@@ -66,7 +66,7 @@ func (r *RoutePort) ConnectCable(cable *Cable) bool {
 	return true
 }
 
-func (r *RoutePort) RouteIn(cable *Cable) {
+func (r *routePort) RouteIn(cable *Cable) {
 	node := r.Iface.Node
 	node.Update(cable)
 
@@ -74,7 +74,7 @@ func (r *RoutePort) RouteIn(cable *Cable) {
 	routes.RouteOut()
 }
 
-func (r *RoutePort) RouteOut() {
+func (r *routePort) RouteOut() {
 	if r.DisableOut {
 		return
 	}

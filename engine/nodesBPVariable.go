@@ -54,7 +54,7 @@ func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*BPVariable
 
 	thisInstance := b.Node.Instance
 	funcInstance := thisInstance.QFuncMain
-	var bpFunc *BPFunction
+	var bpFunc *bpFunction
 	if funcInstance != nil {
 		bpFunc = funcInstance.Node.QFuncInstance
 	}
@@ -231,7 +231,7 @@ func (b *iVarGet) QReinitPort() *Port {
 	}
 
 	if temp.Type == types.Function {
-		node.CreatePort("Input", "Val", Ports.Trigger(func(p *Port) {
+		node.CreatePort("Input", "Val", QPorts.Trigger(func(p *Port) {
 			temp.Emit("call", nil)
 		}))
 	} else {
@@ -243,7 +243,7 @@ func (b *iVarGet) QReinitPort() *Port {
 
 func init() {
 	QNodeList["BP/Var/Set"] = &NodeRegister{
-		Input: NodePortTemplate{},
+		Input: PortTemplate{},
 		Constructor: func(node *Node) {
 			node.Embed = &bpVarSet{}
 
@@ -271,7 +271,7 @@ func init() {
 	}
 
 	QNodeList["BP/Var/Get"] = &NodeRegister{
-		Output: NodePortTemplate{},
+		Output: PortTemplate{},
 		Constructor: func(node *Node) {
 			node.Embed = &bpVarGet{}
 

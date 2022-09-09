@@ -2,7 +2,7 @@ package engine
 
 type referencesShortcut struct {
 	IInput  map[string]*Port
-	Input   map[string]*PortInputGetterSetter
+	Input   map[string]*portInputGetterSetter
 	IOutput map[string]*Port
-	Output  map[string]*PortOutputGetterSetter
+	Output  map[string]*portOutputGetterSetter
 }

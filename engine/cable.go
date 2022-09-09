@@ -28,7 +28,7 @@ type CableEvent struct {
 
 type PortValueEvent = CableEvent
 
-func NewCable(owner *Port, target *Port) *Cable {
+func newCable(owner *Port, target *Port) *Cable {
 	var input *Port
 	var output *Port
 

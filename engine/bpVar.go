@@ -27,7 +27,7 @@ type BPVariable struct {
 	Used         []*Interface
 	Value        bpVarValue
 	Listener     []*Interface
-	FuncInstance *BPFunction // for shared function variables
+	FuncInstance *bpFunction // for shared function variables
 }
 
 func (b *BPVariable) Destroy() {

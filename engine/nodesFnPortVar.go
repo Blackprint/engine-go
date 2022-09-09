@@ -77,13 +77,13 @@ func (f *fnVarInputIface) Imported(data map[string]any) {
 			cable.Disconnect()
 			node.DeletePort("output", "Val")
 
-			portName := &RefPortName{Name: name}
+			portName := &refPortName{Name: name}
 			portType := getFnPortType(port, "input", f.QParentFunc, portName)
 			newPort := node.CreatePort("output", "Val", portType)
 			newPort.Name_ = portName
 			newPort.ConnectPort(port)
 
-			proxyIface.Embed.(*QBpFnInOut).AddPort(port, name)
+			proxyIface.Embed.(*qBpFnInOut).AddPort(port, name)
 			f.QAddListener()
 
 			return true
@@ -194,13 +194,13 @@ func (f *fnVarOutputIface) Imported(data map[string]any) {
 			cable.Disconnect()
 			node.DeletePort("input", "Val")
 
-			portName := &RefPortName{Name: name}
+			portName := &refPortName{Name: name}
 			portType := getFnPortType(port, "output", f.QParentFunc, portName)
 			newPort := node.CreatePort("input", "Val", portType)
 			newPort.Name_ = portName
 			newPort.ConnectPort(port)
 
-			proxyIface.Embed.(*QBpFnInOut).AddPort(port, name)
+			proxyIface.Embed.(*qBpFnInOut).AddPort(port, name)
 			return true
 		}
 
@@ -235,12 +235,12 @@ func (f *fnVarOutputIface) Imported(data map[string]any) {
 	}
 }
 
-func getFnPortType(port *Port, which string, parentNode *Interface, ref *RefPortName) any {
+func getFnPortType(port *Port, which string, parentNode *Interface, ref *refPortName) any {
 	if port.Feature == PortTypeTrigger {
 		if which == "input" { // Function Input (has output port inside, and input port on main node)
 			return types.Function
 		} else {
-			return Ports.Trigger(parentNode.Output[ref.Name].QCallAll)
+			return QPorts.Trigger(parentNode.Output[ref.Name].QCallAll)
 		}
 	} else {
 		if port.Feature != 0 {
@@ -253,7 +253,7 @@ func getFnPortType(port *Port, which string, parentNode *Interface, ref *RefPort
 
 func init() {
 	QNodeList["BP/FnVar/Input"] = &NodeRegister{
-		Output: NodePortTemplate{},
+		Output: PortTemplate{},
 		Constructor: func(node *Node) {
 			node.Embed = &fnVarInput{}
 
@@ -280,7 +280,7 @@ func init() {
 	}
 
 	QNodeList["BP/FnVar/Output"] = &NodeRegister{
-		Input: NodePortTemplate{},
+		Input: PortTemplate{},
 		Constructor: func(node *Node) {
 			node.Embed = &fnVarOutput{}
 

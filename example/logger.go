@@ -66,8 +66,8 @@ func (iface *LoggerIFace) Log(val ...any) any {
 
 func init() {
 	Blackprint.RegisterNode("Example/Display/Logger", &engine.NodeRegister{
-		Input: engine.NodePortTemplate{
-			"Any": engine.Ports.ArrayOf(types.Any), // nil => Any
+		Input: engine.PortTemplate{
+			"Any": Blackprint.Port.ArrayOf(types.Any), // nil => Any
 		},
 
 		Constructor: func(node *engine.Node) {

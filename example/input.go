@@ -59,7 +59,7 @@ func (gs *MyData) Get() any {
 // This will be called from example.go
 func init() {
 	Blackprint.RegisterNode("Example/Input/Simple", &engine.NodeRegister{
-		Output: engine.NodePortTemplate{
+		Output: engine.PortTemplate{
 			"Changed": types.Function,
 			"Value":   types.String,
 		},

@@ -32,19 +32,19 @@ type Node struct {
 	Instance     *Instance
 	Iface        *Interface
 	DisablePorts bool
-	Routes       *RoutePort
+	Routes       *routePort
 	Embed        embedNode
 
 	Ref *referencesShortcut
 
-	Output map[string]*PortOutputGetterSetter
-	Input  map[string]*PortInputGetterSetter
+	Output map[string]*portOutputGetterSetter
+	Input  map[string]*portInputGetterSetter
 	// Property map[string]getterSetter
 
 	// For internal library use only
-	QFuncInstance *BPFunction
-	RefOutput     map[string]*PortOutputGetterSetter
-	// RefInput      map[string]*PortInputGetterSetter
+	QFuncInstance *bpFunction
+	RefOutput     map[string]*portOutputGetterSetter
+	// RefInput      map[string]*portInputGetterSetter
 }
 
 // Proxies, for library only
@@ -57,19 +57,19 @@ func (n *Node) SyncIn(id string, data ...any) { n.Embed.SyncIn(id, data) }
 
 type NodeRegister struct {
 	// Port Template
-	Output NodePortTemplate
-	Input  NodePortTemplate
-	// Property *NodePortTemplate
+	Output PortTemplate
+	Input  PortTemplate
+	// Property *PortTemplate
 
-	Constructor NodeConstructor
+	Constructor nodeConstructor
 }
 
 type InterfaceRegister struct {
-	Constructor InterfaceConstructor
+	Constructor interfaceConstructor
 }
 
-type NodeConstructor func(*Node)
-type InterfaceConstructor func(*Interface)
+type nodeConstructor func(*Node)
+type interfaceConstructor func(*Interface)
 
 // QNodeList = Private function, for internal library only
 var QNodeList = map[string]*NodeRegister{}
@@ -110,11 +110,11 @@ func (n *Node) CreatePort(which string, name string, config_ any) *Port {
 	if which != "input" {
 		ifacePort := n.Iface.Input
 		ifacePort[name] = port
-		n.Input[name] = &PortInputGetterSetter{port: port}
+		n.Input[name] = &portInputGetterSetter{port: port}
 	} else if which != "output" {
 		ifacePort := n.Iface.Output
 		ifacePort[name] = port
-		n.Output[name] = &PortOutputGetterSetter{port: port}
+		n.Output[name] = &portOutputGetterSetter{port: port}
 	} else {
 		panic("Can only create port for 'input' and 'output'")
 	}

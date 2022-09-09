@@ -4,21 +4,21 @@ import (
 	"github.com/blackprint/engine-go/types"
 )
 
-type PortInputGetterSetter struct {
+type portInputGetterSetter struct {
 	getterSetter
 	port *Port
 }
 
-func (gs *PortInputGetterSetter) Set(val any) {
+func (gs *portInputGetterSetter) Set(val any) {
 	panic("Can't set input port's value")
 }
 
-func (gs *PortInputGetterSetter) Call() {
+func (gs *portInputGetterSetter) Call() {
 	gs.port.QFunc(gs.port)
 	gs.port.Iface.Node.Routes.RouteOut()
 }
 
-func (gs *PortInputGetterSetter) Get() any {
+func (gs *portInputGetterSetter) Get() any {
 	port := gs.port
 
 	// This port must use values from connected output
@@ -106,12 +106,12 @@ func (gs *PortInputGetterSetter) Get() any {
 	return data
 }
 
-type PortOutputGetterSetter struct {
+type portOutputGetterSetter struct {
 	getterSetter
 	port *Port
 }
 
-func (gs *PortOutputGetterSetter) Set(val any) {
+func (gs *portOutputGetterSetter) Set(val any) {
 	port := gs.port
 
 	if port.Source == PortInput {
@@ -130,7 +130,7 @@ func (gs *PortOutputGetterSetter) Set(val any) {
 
 // createCallablePort
 // createCallableRoutePort
-func (gs *PortOutputGetterSetter) Call() {
+func (gs *portOutputGetterSetter) Call() {
 	if gs.port.Type == types.Route {
 		cable := gs.port.Cables[0]
 		if cable == nil {
@@ -157,7 +157,7 @@ func (gs *PortOutputGetterSetter) Call() {
 	}
 }
 
-func (gs *PortOutputGetterSetter) Get() any {
+func (gs *portOutputGetterSetter) Get() any {
 	port := gs.port
 
 	if port.Feature == PortTypeArrayOf {

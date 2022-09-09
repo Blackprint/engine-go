@@ -29,8 +29,8 @@ func (this *MathMultiple) Update(cable *engine.Cable) {
 
 func init() {
 	Blackprint.RegisterNode("Example/Math/Multiply", &engine.NodeRegister{
-		Input: engine.NodePortTemplate{
-			"Exec": engine.Ports.Trigger(func(port *engine.Port) {
+		Input: engine.PortTemplate{
+			"Exec": Blackprint.Port.Trigger(func(port *engine.Port) {
 				port.Iface.Node.Output["Result"].Set(port.Iface.Node.Embed.(*MathMultiple).Multiply())
 				log.Printf("\x1b[1m\x1b[33mMath\\Multiply:\x1b[0m \x1b[33mResult has been set: %d\x1b[0m\n", port.Iface.Node.Output["Result"].Get())
 			}),
@@ -38,7 +38,7 @@ func init() {
 			"B": types.Any,
 		},
 
-		Output: engine.NodePortTemplate{
+		Output: engine.PortTemplate{
 			"Result": types.Int,
 		},
 
@@ -80,8 +80,8 @@ func (this *MathRandom) Request(cable *engine.Cable) {
 
 func init() {
 	Blackprint.RegisterNode("Example/Math/Random", &engine.NodeRegister{
-		Input: engine.NodePortTemplate{
-			"Re-seed": engine.Ports.Trigger(func(port *engine.Port) {
+		Input: engine.PortTemplate{
+			"Re-seed": Blackprint.Port.Trigger(func(port *engine.Port) {
 				node := port.Iface.Node
 				node.Embed.(*MathRandom).Executed = true
 
@@ -90,7 +90,7 @@ func init() {
 				node.Output["Out"].Set(int(binary.BigEndian.Uint16(byt[:])) % 100)
 			}),
 		},
-		Output: engine.NodePortTemplate{
+		Output: engine.PortTemplate{
 			"Out": types.Int,
 		},
 

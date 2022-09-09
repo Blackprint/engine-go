@@ -22,3 +22,4 @@ func RegisterInterface(namespace string, meta *engine.InterfaceRegister) {
 
 var Event = engine.Event
 var Environment = engine.QEnvironment
+var Port = engine.QPorts

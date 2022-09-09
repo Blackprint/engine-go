@@ -35,7 +35,7 @@ type Interface struct {
 	*CustomEvent
 
 	Id        string
-	uniqId    int // For BPFunction only
+	uniqId    int // For bpFunction only
 	I         int // index
 	Title     string
 	Namespace string
@@ -85,11 +85,11 @@ func (iface *Interface) QPrepare(meta *NodeRegister) {
 	node.Ref = ref
 	iface.Ref = ref
 
-	node.Routes = &RoutePort{Iface: iface}
+	node.Routes = &routePort{Iface: iface}
 
 	for i := 0; i < 3; i++ {
 		which := portList[i]
-		port := utils.GetProperty(meta, which).(NodePortTemplate) // get value by property name
+		port := utils.GetProperty(meta, which).(PortTemplate) // get value by property name
 
 		if port == nil {
 			continue
@@ -97,18 +97,18 @@ func (iface *Interface) QPrepare(meta *NodeRegister) {
 
 		ifacePort := map[string]*Port{}
 
-		var inputUpgradePort map[string]*PortInputGetterSetter
-		var outputUpgradePort map[string]*PortOutputGetterSetter
+		var inputUpgradePort map[string]*portInputGetterSetter
+		var outputUpgradePort map[string]*portOutputGetterSetter
 
 		if which == "Input" {
-			inputUpgradePort = map[string]*PortInputGetterSetter{}
+			inputUpgradePort = map[string]*portInputGetterSetter{}
 			ref.Input = inputUpgradePort
 			ref.IInput = ifacePort
 
 			iface.Input = ifacePort
 			node.Input = inputUpgradePort
 		} else {
-			outputUpgradePort = map[string]*PortOutputGetterSetter{}
+			outputUpgradePort = map[string]*portOutputGetterSetter{}
 			ref.Output = outputUpgradePort
 			ref.IOutput = ifacePort
 
@@ -123,16 +123,16 @@ func (iface *Interface) QPrepare(meta *NodeRegister) {
 
 			// CreateLinker()
 			if which == "Input" {
-				inputUpgradePort[name] = &PortInputGetterSetter{port: linkedPort}
+				inputUpgradePort[name] = &portInputGetterSetter{port: linkedPort}
 			} else {
-				outputUpgradePort[name] = &PortOutputGetterSetter{port: linkedPort}
+				outputUpgradePort[name] = &portOutputGetterSetter{port: linkedPort}
 			}
 		}
 	}
 }
 
 func (iface *Interface) QCreatePort(which string, name string, config_ any) *Port {
-	var config *PortFeature
+	var config *portFeature
 	var type_ reflect.Kind
 	var types_ []reflect.Kind
 	var feature int
@@ -160,7 +160,7 @@ func (iface *Interface) QCreatePort(which string, name string, config_ any) *Por
 			panic(iface.Namespace + ": '" + name + "' Port type(" + type_.String() + ") for initialization was not recognized")
 		}
 	} else {
-		config = config_.(*PortFeature)
+		config = config_.(*portFeature)
 		type_ = config.Type
 		feature = config.Id
 

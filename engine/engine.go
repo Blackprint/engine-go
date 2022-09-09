@@ -13,7 +13,7 @@ import (
 
 var Event = &CustomEvent{}
 
-type NodePortTemplate map[string]any // any = reflect.Kind | portFeature
+type PortTemplate map[string]any // any = reflect.Kind | portFeature
 type Instance struct {
 	*CustomEvent
 	Iface        map[string]*Interface // Storing with node id if exist
@@ -23,13 +23,13 @@ type Instance struct {
 	PanicOnError bool
 
 	Variables map[string]*BPVariable
-	Functions map[string]*BPFunction
+	Functions map[string]*bpFunction
 	Ref       map[string]*referencesShortcut
 
 	// For internal library use only
 	SharedVariables map[string]*BPVariable
 	QFuncMain       *Interface
-	QFuncInstance   *BPFunction
+	QFuncInstance   *bpFunction
 	QMainInstance   *Instance
 	QRemote         any
 }
@@ -43,29 +43,29 @@ func New() *Instance {
 	}
 }
 
-type Data struct {
+type dataX struct {
 	Value string `json:"value"`
 }
-type Namespace string
-type NodeData struct {
-	Data Data `json:"data,omitempty"`
+type nodeData struct {
+	Data dataX `json:"data,omitempty"`
 }
-type NodeOutput struct {
+type nodeOutput struct {
 	Output []Node `json:"output"`
 }
-type NodeX struct {
+type nodeX struct {
 	Name string  `json:"name"`
 	I    *int64  `json:"i,omitempty"`
 	ID   *string `json:"id,omitempty"`
 
-	NodeData
-	NodeOutput
+	nodeData
+	nodeOutput
 }
-type DataStructure map[Namespace][]NodeX
+type namespace string
+type dataStructure map[namespace][]nodeX
 
 //
 
-type SingleInstanceJSON map[string]any // any = nodeList | metadataValue
+type singleInstanceJSON map[string]any // any = nodeList | metadataValue
 type metadataValue map[string]any
 type nodeList []nodeConfig
 type nodeConfig struct {
@@ -105,7 +105,7 @@ type ImportOptions struct {
 }
 
 func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inserted []*Interface, err error) {
-	var data SingleInstanceJSON
+	var data singleInstanceJSON
 
 	err = json.Unmarshal(str, &data)
 	if err != nil {
@@ -115,7 +115,7 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 	return instance.ImportJSONParsed(data, options...)
 }
 
-func (instance *Instance) ImportJSONParsed(data SingleInstanceJSON, options ...ImportOptions) (inserted []*Interface, err error) {
+func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...ImportOptions) (inserted []*Interface, err error) {
 	hasOption := len(options) != 0
 	options_ := options[0]
 
@@ -194,7 +194,7 @@ func (instance *Instance) ImportJSONParsed(data SingleInstanceJSON, options ...I
 					if linkPortA == nil {
 						if iface.QEnum == nodes.BPFnInput {
 							target := instance.QGetTargetPortType(iface.Node.Instance, "input", ports)
-							linkPortA = iface.Embed.(*QBpFnInOut).AddPort(target, portName)
+							linkPortA = iface.Embed.(*qBpFnInOut).AddPort(target, portName)
 
 							if linkPortA == nil {
 								panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, iface.QFuncMain.Node.QFuncInstance.Id))
@@ -221,7 +221,7 @@ func (instance *Instance) ImportJSONParsed(data SingleInstanceJSON, options ...I
 							targetTitle := targetNode.Title
 
 							if targetNode.QEnum == nodes.BPFnOutput {
-								linkPortB = targetNode.Embed.(*QBpFnInOut).AddPort(linkPortA, portName)
+								linkPortB = targetNode.Embed.(*qBpFnInOut).AddPort(linkPortA, portName)
 
 								if linkPortB == nil {
 									panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, targetNode.QFuncMain.Node.QFuncInstance.Id))
@@ -271,7 +271,7 @@ func (instance *Instance) QGetTargetPortType(ins *Instance, which string, target
 	}
 }
 
-type EvNodeDelete struct {
+type NodeDeleteEvent struct {
 	Iface any
 }
 
@@ -283,7 +283,7 @@ func (instance *Instance) DeleteNode(iface *Interface) {
 
 	instance.IfaceList = utils.RemoveItemAtIndex(instance.IfaceList, i)
 
-	eventData := &EvNodeDelete{
+	eventData := &NodeDeleteEvent{
 		Iface: iface,
 	}
 	instance.Emit("node.delete", eventData)
@@ -487,10 +487,10 @@ type funcOptions struct {
 	Title       string             `json:"title"`
 	Vars        []string           `json:"vars"`
 	PrivateVars []string           `json:"privateVars"`
-	Structure   SingleInstanceJSON `json:"structure"`
+	Structure   singleInstanceJSON `json:"structure"`
 }
 
-func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
+func (instance *Instance) CreateFunction(id string, options any) *bpFunction {
 	id = createBPVariableRegx.ReplaceAllString(id, "_")
 
 	if old, exist := instance.Functions[id]; exist {
@@ -503,21 +503,21 @@ func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
 	// This will be updated if the function sketch was modified
 	structure := options_.Structure
 	if structure == nil {
-		structure = SingleInstanceJSON{
+		structure = singleInstanceJSON{
 			"BP/Fn/Input":  nodeList{nodeConfig{I: 0}},
 			"BP/Fn/Output": nodeList{nodeConfig{I: 1}},
 		}
 	}
 
 	title := id
-	temp := &BPFunction{
+	temp := &bpFunction{
 		Id:           id,
 		Title:        title,
 		Type:         0, // Type not set
 		Structure:    structure,
 		RootInstance: instance,
-		Input:        NodePortTemplate{},
-		Output:       NodePortTemplate{},
+		Input:        PortTemplate{},
+		Output:       PortTemplate{},
 	}
 
 	meta := &NodeRegister{
@@ -534,10 +534,10 @@ func (instance *Instance) CreateFunction(id string, options any) *BPFunction {
 			QFuncInstance: temp,
 		}
 
-		node.Embed = &BPFunctionNode{}
+		node.Embed = &bpFunctionNode{}
 
 		iface := node.SetInterface("BPIC/BP/Fn/Main")
-		iface.Embed.(*BPFunctionNode).Type = "function"
+		iface.Embed.(*bpFunctionNode).Type = "function"
 		iface.QEnum = nodes.BPFnMain
 		iface.Namespace = id
 		iface.Title = title

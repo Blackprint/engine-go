@@ -24,8 +24,8 @@ func (iface *ButtonSimpleIFace) Clicked(ev any) {
 // This will be called from example.go
 func init() {
 	Blackprint.RegisterNode("Example/Button/Simple", &engine.NodeRegister{
-		Output: engine.NodePortTemplate{},
-		Input:  engine.NodePortTemplate{},
+		Output: engine.PortTemplate{},
+		Input:  engine.PortTemplate{},
 
 		Constructor: func(node *engine.Node) {
 			node.Embed = &ButtonSimple{}
