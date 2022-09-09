@@ -17,18 +17,18 @@ type bpFunctionNode struct { // Main function node -> BPI/F/{FunctionName}
 }
 
 func (b *bpFunctionNode) Init() {
-	if b.Iface.Embed.(*FnMain).QImportOnce {
-		b.Iface.QBpFnInit()
+	if b.Iface.Embed.(*FnMain)._importOnce {
+		b.Iface._bpFnInit()
 	}
 }
 
 func (b *bpFunctionNode) Imported(data map[string]any) {
-	ins := b.Node.QFuncInstance
+	ins := b.Node._funcInstance
 	ins.Used = append(ins.Used, b.Node.Iface)
 }
 
 func (b *bpFunctionNode) Update(cable *Cable) {
-	iface := b.Iface.QProxyInput.Iface
+	iface := b.Iface._proxyInput.Iface
 	Output := iface.Node.Output
 
 	if cable == nil { // Triggered by port route
@@ -51,7 +51,7 @@ func (b *bpFunctionNode) Update(cable *Cable) {
 }
 
 func (b *bpFunctionNode) Destroy() {
-	ins := b.Node.QFuncInstance
+	ins := b.Node._funcInstance
 	utils.RemoveItem(ins.Used, b.Node.Iface)
 }
 
@@ -66,31 +66,31 @@ type bpFunction struct { // <= _funcInstance
 	Output       PortTemplate
 	Structure    singleInstanceJSON
 	Variables    map[string]*BPVariable
-	PrivateVars  []string
+	privateVars  []string
 	RootInstance *Instance
 	Node         func(*Instance) *Node // Node constructor
 
 	// for internal library use only
-	QSyncing bool
+	_syncing bool
 }
 
-func (b *bpFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
+func (b *bpFunction) _onFuncChanges(eventName string, obj any, fromNode *Node) {
 	for _, iface_ := range b.Used {
 		if iface_.Node == fromNode {
 			continue
 		}
 
-		nodeInstance := iface_.QBpInstance
+		nodeInstance := iface_._bpInstance
 		// nodeInstance.PendingRender = true // Force recalculation for cable position
 
 		if eventName == "cable.connect" || eventName == "cable.disconnect" {
 			cable := utils.GetProperty(obj, "Cable").(*Cable)
 			input := cable.Input
 			output := cable.Output
-			ifaceList := fromNode.Iface.QBpInstance.IfaceList
+			ifaceList := fromNode.Iface._bpInstance.IfaceList
 
 			// Skip event that also triggered when deleting a node
-			if input.Iface.QBpDestroy || output.Iface.QBpDestroy {
+			if input.Iface._bpDestroy || output.Iface._bpDestroy {
 				continue
 			}
 
@@ -119,7 +119,7 @@ func (b *bpFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 				targetOutput := outputIface.Output[output.Name]
 
 				if targetInput == nil {
-					if inputIface.QEnum == nodes.BPFnOutput {
+					if inputIface._enum == nodes.BPFnOutput {
 						targetInput = inputIface.Embed.(*qBpFnInOut).AddPort(targetOutput, output.Name)
 					} else {
 						panic("Output port was not found")
@@ -127,7 +127,7 @@ func (b *bpFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 				}
 
 				if targetOutput == nil {
-					if outputIface.QEnum == nodes.BPFnInput {
+					if outputIface._enum == nodes.BPFnInput {
 						targetOutput = outputIface.Embed.(*qBpFnInOut).AddPort(targetInput, input.Name)
 					} else {
 						panic("Input port was not found")
@@ -154,7 +154,7 @@ func (b *bpFunction) QOnFuncChanges(eventName string, obj any, fromNode *Node) {
 		} else if eventName == "node.delete" {
 			objIface := utils.GetProperty(obj, "Iface").(*Interface)
 
-			index := utils.IndexOf(fromNode.Iface.QBpInstance.IfaceList, objIface)
+			index := utils.IndexOf(fromNode.Iface._bpInstance.IfaceList, objIface)
 			if index == -1 {
 				panic("Failed to get node index")
 			}
@@ -211,11 +211,11 @@ type VariableNewEvent struct {
 }
 
 func (b *bpFunction) AddPrivateVars(id string) {
-	if utils.Contains(b.PrivateVars, id) {
+	if utils.Contains(b.privateVars, id) {
 		return
 	}
 
-	b.PrivateVars = append(b.PrivateVars, id)
+	b.privateVars = append(b.privateVars, id)
 
 	temp := &VariableNewEvent{
 		ScopeId: VarScopePrivate,
@@ -225,13 +225,13 @@ func (b *bpFunction) AddPrivateVars(id string) {
 	b.RootInstance.Emit("variable.new", temp)
 
 	for _, iface := range b.Used {
-		iface.QBpInstance.Variables[id] = &BPVariable{Id: id}
+		iface._bpInstance.Variables[id] = &BPVariable{Id: id}
 	}
 }
 
 func (b *bpFunction) RefreshPrivateVars(instance *Instance) {
 	vars := instance.Variables
-	for _, id := range b.PrivateVars {
+	for _, id := range b.privateVars {
 		vars[id] = &BPVariable{Id: id}
 	}
 }
@@ -255,16 +255,16 @@ func (b *bpFunction) RenamePort(which string, fromName string, toName string) {
 
 		var temp *Node
 		if which == "output" {
-			temp = iface.QProxyOutput
+			temp = iface._proxyOutput
 		} else {
-			temp = iface.QProxyInput
+			temp = iface._proxyInput
 		}
 
 		portList := utils.GetProperty(temp.Iface, proxyPort).(map[string]*Port)
 		portList[fromName].Name_.Name = toName
 		temp.RenamePort(proxyPort, fromName, toName)
 
-		for _, proxyVar := range iface.QBpInstance.IfaceList {
+		for _, proxyVar := range iface._bpInstance.IfaceList {
 			if (which == "output" && proxyVar.Namespace != "BP/FnVar/Output") || (which == "input" && proxyVar.Namespace != "BP/FnVar/Input") {
 				continue
 			}
@@ -292,7 +292,7 @@ type qNodeInput struct {
 }
 
 func (n *qNodeInput) Imported(data map[string]any) {
-	input := n.Iface.QFuncMain.Node.QFuncInstance.Input
+	input := n.Iface._funcMain.Node._funcInstance.Input
 
 	for key, value := range input {
 		n.Node.CreatePort("output", key, value)
@@ -303,7 +303,7 @@ func (n *qNodeInput) Request(cable *Cable) {
 	name := cable.Output.Name
 
 	// This will trigger the port to request from outside and assign to this node's port
-	n.Node.Output[name].Set(n.Iface.QFuncMain.Node.Input[name].Get())
+	n.Node.Output[name].Set(n.Iface._funcMain.Node.Input[name].Get())
 }
 
 type qNodeOutput struct {
@@ -311,7 +311,7 @@ type qNodeOutput struct {
 }
 
 func (n *qNodeOutput) Imported(data map[string]any) {
-	output := n.Iface.QFuncMain.Node.QFuncInstance.Output
+	output := n.Iface._funcMain.Node._funcInstance.Output
 
 	for key, value := range output {
 		n.Node.CreatePort("input", key, value)
@@ -319,7 +319,7 @@ func (n *qNodeOutput) Imported(data map[string]any) {
 }
 
 func (n *qNodeOutput) Update(cable *Cable) {
-	iface := n.Iface.QFuncMain
+	iface := n.Iface._funcMain
 	if cable == nil { // Triggered by port route
 		IOutput := iface.Output
 		Output := iface.Node.Output
@@ -341,74 +341,74 @@ func (n *qNodeOutput) Update(cable *Cable) {
 
 type FnMain struct {
 	*EmbedInterface
-	QImportOnce bool
-	QSave       func(any, string, bool)
-	QPortSw_    map[string]int
+	_importOnce bool
+	_save       func(any, string, bool)
+	_portSw_    map[string]int
 }
 
-func (f *FnMain) QBpFnInit() {
-	if f.QImportOnce {
+func (f *FnMain) _bpFnInit() {
+	if f._importOnce {
 		panic("Can't import function more than once")
 	}
 
-	f.QImportOnce = true
+	f._importOnce = true
 	node := f.Node
 
-	f.Iface.QBpInstance = New()
-	bpFunction := node.QFuncInstance
+	f.Iface._bpInstance = New()
+	bpFunction := node._funcInstance
 
-	newInstance := f.Iface.QBpInstance
+	newInstance := f.Iface._bpInstance
 	// newInstance.Variables = []; // private for one function
-	newInstance.SharedVariables = bpFunction.Variables // shared between function
+	newInstance.sharedVariables = bpFunction.Variables // shared between function
 	newInstance.Functions = node.Instance.Functions
-	newInstance.QFuncMain = f.Iface
-	newInstance.QMainInstance = bpFunction.RootInstance
+	newInstance._funcMain = f.Iface
+	newInstance._mainInstance = bpFunction.RootInstance
 
 	bpFunction.RefreshPrivateVars(newInstance)
 
 	// swallowCopy := make([]any, len(bpFunction.Structure))
 	// copy(swallowCopy, bpFunction.Structure)
 
-	f.Iface.QBpInstance.ImportJSONParsed(bpFunction.Structure)
+	f.Iface._bpInstance.importParsed(bpFunction.Structure)
 
 	// Init port switches
-	if f.QPortSw_ != nil {
-		f.Iface.QInitPortSwitches(f.QPortSw_)
-		f.QPortSw_ = nil
+	if f._portSw_ != nil {
+		f.Iface._initPortSwitches(f._portSw_)
+		f._portSw_ = nil
 
-		InputIface := f.Iface.QProxyInput.Iface
+		InputIface := f.Iface._proxyInput.Iface
 		InputIface_ := InputIface.Embed.(*qBpFnInOut)
 
-		if InputIface_.QPortSw_ != nil {
-			InputIface.QInitPortSwitches(InputIface_.QPortSw_)
-			InputIface_.QPortSw_ = nil
+		if InputIface_._portSw_ != nil {
+			InputIface._initPortSwitches(InputIface_._portSw_)
+			InputIface_._portSw_ = nil
 		}
 	}
 
-	f.QSave = func(ev any, eventName string, force bool) {
-		if force || bpFunction.QSyncing {
+	f._save = func(ev any, eventName string, force bool) {
+		if force || bpFunction._syncing {
 			return
 		}
 
 		// ev.BpFunction = bpFunction
-		newInstance.QMainInstance.Emit(eventName, ev)
+		newInstance._mainInstance.Emit(eventName, ev)
 
-		bpFunction.QSyncing = true
-		bpFunction.QOnFuncChanges(eventName, ev, f.Node)
-		bpFunction.QSyncing = false
+		bpFunction._syncing = true
+		bpFunction._onFuncChanges(eventName, ev, f.Node)
+		bpFunction._syncing = false
 	}
 
-	f.Iface.QBpInstance.On("cable.connect cable.disconnect node.created node.delete node.id.changed", f.QSave)
+	f.Iface._bpInstance.On("cable.connect cable.disconnect node.created node.delete node.id.changed", f._save)
 }
 func (f *FnMain) RenamePort(which string, fromName string, toName string) {
-	f.Node.QFuncInstance.RenamePort(which, fromName, toName)
-	f.QSave(false, "", true)
+	f.Node._funcInstance.RenamePort(which, fromName, toName)
+	f._save(false, "", true)
 }
 
 type qBpFnInOut struct {
 	*EmbedInterface
 	Type     string
-	QPortSw_ map[string]int
+	_portSw_ map[string]int
 }
 
 type addPortRef struct {
@@ -443,7 +443,7 @@ func (b *qBpFnInOut) AddPort(port *Port, customName string) *Port {
 		})
 	} else {
 		if port.Feature != 0 {
-			portType = port.QGetPortFeature()
+			portType = port._getPortFeature()
 		} else {
 			portType = port.Type
 		}
@@ -464,9 +464,9 @@ func (b *qBpFnInOut) AddPort(port *Port, customName string) *Port {
 			inc++
 		}
 
-		nodeA = b.Iface.QFuncMain.Node
+		nodeA = b.Iface._funcMain.Node
 		nodeB = b.Node
-		nodeA.QFuncInstance.Input[name] = portType
+		nodeA._funcInstance.Input[name] = portType
 	} else { // Output (input) -> Main (output)
 		inc := 1
 		for true {
@@ -480,15 +480,15 @@ func (b *qBpFnInOut) AddPort(port *Port, customName string) *Port {
 		}
 
 		nodeA = b.Node
-		nodeB = b.Iface.QFuncMain.Node
-		nodeB.QFuncInstance.Output[name] = portType
+		nodeB = b.Iface._funcMain.Node
+		nodeB._funcInstance.Output[name] = portType
 	}
 
 	outputPort := nodeB.CreatePort("output", name, portType)
 
 	var inputPort *Port
 	if portType == types.Function {
-		inputPort = nodeA.CreatePort("input", name, QPorts.Trigger(outputPort.QCallAll))
+		inputPort = nodeA.CreatePort("input", name, QPorts.Trigger(outputPort._callAll))
 	} else {
 		inputPort = nodeA.CreatePort("input", name, portType)
 	}
@@ -515,7 +515,7 @@ func (b *qBpFnInOut) AddPort(port *Port, customName string) *Port {
 }
 
 func (b *qBpFnInOut) RenamePort(fromName string, toName string) {
-	bpFunction := b.Iface.QFuncMain.Node.QFuncInstance
+	bpFunction := b.Iface._funcMain.Node._funcInstance
 	// Main (input) -> Input (output)
 	if b.Type == "bp-fn-input" {
 		bpFunction.RenamePort("input", fromName, toName)
@@ -525,15 +525,15 @@ func (b *qBpFnInOut) RenamePort(fromName string, toName string) {
 }
 
 func (b *qBpFnInOut) DeletePort(name string) {
-	funcMainNode := b.Iface.QFuncMain.Node
+	funcMainNode := b.Iface._funcMain.Node
 	if b.Type == "bp-fn-input" { // Main (input) -> Input (output)
 		funcMainNode.DeletePort("input", name)
 		b.Node.DeletePort("output", name)
-		delete(funcMainNode.QFuncInstance.Input, name)
+		delete(funcMainNode._funcInstance.Input, name)
 	} else { // Output (input) -> Main (output)
 		funcMainNode.DeletePort("output", name)
 		b.Node.DeletePort("input", name)
-		delete(funcMainNode.QFuncInstance.Output, name)
+		delete(funcMainNode._funcInstance.Output, name)
 	}
 }
 
@@ -544,13 +544,13 @@ func init() {
 			node.Embed = &qNodeInput{}
 
 			iface := node.SetInterface("BPIC/BP/Fn/Input")
-			iface.QEnum = nodes.BPFnInput
-			iface.QDynamicPort = true // Port is initialized dynamically
+			iface._enum = nodes.BPFnInput
+			iface._dynamicPort = true // Port is initialized dynamically
 
 			iface.Title = "Input"
 			iface.Embed.(*qBpFnInOut).Type = "bp-fn-input"
-			iface.QFuncMain = node.Instance.QFuncMain
-			iface.QFuncMain.QProxyInput = node
+			iface._funcMain = node.Instance._funcMain
+			iface._funcMain._proxyInput = node
 		},
 	}
 
@@ -566,13 +566,13 @@ func init() {
 			node.Embed = &bpVarGet{}
 
 			iface := node.SetInterface("BPIC/BP/Fn/Output")
-			iface.QEnum = nodes.BPFnOutput
-			iface.QDynamicPort = true // Port is initialized dynamically
+			iface._enum = nodes.BPFnOutput
+			iface._dynamicPort = true // Port is initialized dynamically
 
 			iface.Title = "Output"
 			iface.Embed.(*qBpFnInOut).Type = "bp-fn-output"
-			iface.QFuncMain = node.Instance.QFuncMain
-			iface.QFuncMain.QProxyOutput = node
+			iface._funcMain = node.Instance._funcMain
+			iface._funcMain._proxyOutput = node
 		},
 	}
 

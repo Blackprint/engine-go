@@ -53,17 +53,17 @@ type Interface struct {
 	Importing bool
 
 	// for internal library use only
-	QInitialized bool
-	QRequesting  bool
-	QFuncMain    *Interface
-	QDynamicPort bool
-	QEnum        int
-	QBpVarRef    *BPVariable
-	QProxyInput  *Node
-	QProxyOutput *Node
-	QParentFunc  *Interface
-	QBpInstance  *Instance
-	QBpDestroy   bool
+	_initialized bool
+	_requesting  bool
+	_funcMain    *Interface
+	_dynamicPort bool
+	_enum        int
+	_bpVarRef    *BPVariable
+	_proxyInput  *Node
+	_proxyOutput *Node
+	_parentFunc  *Interface
+	_bpInstance  *Instance
+	_bpDestroy   bool
 }
 
 // To be overriden
@@ -72,12 +72,12 @@ func (i *Interface) Destroy()                     { i.Embed.Destroy() }
 func (i *Interface) Imported(data map[string]any) { i.Embed.Imported(data) }
 
 // Internal blackprint function node initialization
-func (iface *Interface) QBpFnInit() {}
+func (iface *Interface) _bpFnInit() {}
 
 var reflectKind = reflect.TypeOf(reflect.Int)
 
 // Private (to be called for internal library only)
-func (iface *Interface) QPrepare(meta *NodeRegister) {
+func (iface *Interface) _prepare(meta *NodeRegister) {
 	iface.CustomEvent = &CustomEvent{}
 	ref := &referencesShortcut{}
 
@@ -118,7 +118,7 @@ func (iface *Interface) QPrepare(meta *NodeRegister) {
 
 		// name: string
 		for name, config_ := range port {
-			linkedPort := iface.QCreatePort(which, name, config_)
+			linkedPort := iface._createPort(which, name, config_)
 			ifacePort[name] = linkedPort
 
 			// CreateLinker()
@@ -131,7 +131,7 @@ func (iface *Interface) QPrepare(meta *NodeRegister) {
 	}
 }
 
-func (iface *Interface) QCreatePort(which string, name string, config_ any) *Port {
+func (iface *Interface) _createPort(which string, name string, config_ any) *Port {
 	var config *portFeature
 	var type_ reflect.Kind
 	var types_ []reflect.Kind
@@ -195,17 +195,17 @@ func (iface *Interface) QCreatePort(which string, name string, config_ any) *Por
 		Type:     type_,
 		Types:    types_,
 		Default:  def,
-		QFunc:    qfunc,
+		_func:    qfunc,
 		Source:   source,
 		Iface:    iface,
 		Feature:  feature,
-		QFeature: config,
+		_feature: config,
 	}
 
 	return port
 }
 
-func (iface *Interface) QInitPortSwitches(portSwitches map[string]int) {
+func (iface *Interface) _initPortSwitches(portSwitches map[string]int) {
 	for key, val := range portSwitches {
 		if (val | 1) == 1 {
 			portStructOf_split(iface.Output[key])
@@ -218,7 +218,7 @@ func (iface *Interface) QInitPortSwitches(portSwitches map[string]int) {
 }
 
 // Load saved port data value
-func (iface *Interface) QImportInputs(ports map[string]any) {
+func (iface *Interface) _importInputs(ports map[string]any) {
 	for key, val := range ports {
 		iface.Input[key].Default = val
 	}

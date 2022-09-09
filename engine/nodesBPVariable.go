@@ -16,19 +16,19 @@ type bpVarGet struct {
 }
 
 func (b *bpVarSet) Update(c *Cable) {
-	b.Iface.QBpVarRef.Value.Set(b.Node.Input["Val"].Get())
+	b.Iface._bpVarRef.Value.Set(b.Node.Input["Val"].Get())
 }
 
 type bpVarGetSet struct {
 	*EmbedInterface
 	bpVarGetSetIFace
 	Type       string
-	QBpVarRef  *BPVariable
-	QOnChanged func(*Port)
+	_bpVarRef  *BPVariable
+	_onChanged func(*Port)
 }
 
 type bpVarGetSetIFace interface {
-	QReinitPort() *Port
+	_reinitPort() *Port
 }
 
 func (b *bpVarGetSet) Imported(data map[string]any) {
@@ -41,7 +41,7 @@ func (b *bpVarGetSet) Imported(data map[string]any) {
 	}
 
 	b.ChangeVar(data["name"].(string), data["scope"].(int))
-	b.QBpVarRef.Used = append(b.QBpVarRef.Used, b.Iface)
+	b._bpVarRef.Used = append(b._bpVarRef.Used, b.Iface)
 }
 
 func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*BPVariable {
@@ -53,10 +53,10 @@ func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*BPVariable
 	b.Iface.Data["scope"] = &GetterSetter{Value: scopeId}
 
 	thisInstance := b.Node.Instance
-	funcInstance := thisInstance.QFuncMain
+	funcInstance := thisInstance._funcMain
 	var bpFunc *bpFunction
 	if funcInstance != nil {
-		bpFunc = funcInstance.Node.QFuncInstance
+		bpFunc = funcInstance.Node._funcInstance
 	}
 
 	var scope map[string]*BPVariable
@@ -91,9 +91,9 @@ func (b *bpVarGetSet) ChangeVar(name string, scopeId int) map[string]*BPVariable
 }
 
 func (b *bpVarGetSet) UseType(port *Port) bool {
-	if b.QBpVarRef.Type != 0 { // Type was set
+	if b._bpVarRef.Type != 0 { // Type was set
 		if port == nil {
-			b.QBpVarRef.Type = 0 // Type not set
+			b._bpVarRef.Type = 0 // Type not set
 		}
 		return true
 	}
@@ -106,39 +106,39 @@ func (b *bpVarGetSet) UseType(port *Port) bool {
 }
 
 func (b *bpVarGetSet) UseType_(port *Port, targetPort *Port) {
-	b.QBpVarRef.Type = port.Type
+	b._bpVarRef.Type = port.Type
 	targetPort.ConnectPort(port)
 
 	// Also create port for other node that using $this variable
-	for _, item := range b.QBpVarRef.Used {
-		item.Embed.(bpVarGetSetIFace).QReinitPort()
+	for _, item := range b._bpVarRef.Used {
+		item.Embed.(bpVarGetSetIFace)._reinitPort()
 	}
 }
 
 func (b *bpVarGetSet) Destroy() {
-	temp := b.QBpVarRef
+	temp := b._bpVarRef
 	if temp == nil {
 		return
 	}
 
 	temp.Used = utils.RemoveItem(temp.Used, b.Iface)
 
-	listener := b.QBpVarRef.Listener
+	listener := b._bpVarRef.Listener
 	if listener == nil {
 		return
 	}
 
-	b.QBpVarRef.Listener = utils.RemoveItem(listener, b.Iface)
+	b._bpVarRef.Listener = utils.RemoveItem(listener, b.Iface)
 }
 
 type iVarSet struct {
 	*bpVarGetSet
-	QEventListen string
+	_eventListen string
 }
 
 func (b *iVarSet) UseType(port *Port) {
 	if !b.bpVarGetSet.UseType(port) {
-		b.bpVarGetSet.UseType_(port, b.QReinitPort())
+		b.bpVarGetSet.UseType_(port, b._reinitPort())
 	}
 }
 
@@ -147,24 +147,24 @@ func (b *iVarSet) ChangeVar(name string, scopeId int) {
 		panic("Can't change variable node that already be initialized")
 	}
 
-	if b.QOnChanged != nil && b.QBpVarRef != nil {
-		b.QBpVarRef.Off("value", b.QOnChanged)
+	if b._onChanged != nil && b._bpVarRef != nil {
+		b._bpVarRef.Off("value", b._onChanged)
 	}
 
 	scope := b.bpVarGetSet.ChangeVar(name, scopeId)
 	b.Iface.Title = "Get " + name
 
 	temp := scope[b.Iface.Data["name"].Get().(string)]
-	b.QBpVarRef = temp
+	b._bpVarRef = temp
 	if temp.Type == 0 { // Type not set
 		return
 	}
 
-	b.QReinitPort()
+	b._reinitPort()
 }
 
-func (b *iVarSet) QReinitPort() *Port {
-	temp := b.QBpVarRef
+func (b *iVarSet) _reinitPort() *Port {
+	temp := b._bpVarRef
 	node := b.Node
 
 	if b.Iface.Output["Val"] != nil {
@@ -175,24 +175,24 @@ func (b *iVarSet) QReinitPort() *Port {
 	b.Node.CreatePort("output", "Val", temp.Type)
 
 	if temp.Type == types.Function {
-		b.QEventListen = "call"
-		b.QOnChanged = func(p *Port) {
+		b._eventListen = "call"
+		b._onChanged = func(p *Port) {
 			ref["Val"].Call()
 		}
 	} else {
-		b.QEventListen = "value"
-		b.QOnChanged = func(p *Port) {
+		b._eventListen = "value"
+		b._onChanged = func(p *Port) {
 			ref["Val"].Set(temp.Value.Get())
 		}
 	}
 
-	temp.On(b.QEventListen, b.QOnChanged)
+	temp.On(b._eventListen, b._onChanged)
 	return b.Iface.Output["Val"]
 }
 
 func (b *iVarSet) Destroy() {
-	if b.QEventListen != "" {
-		b.QBpVarRef.Off(b.QEventListen, b.QOnChanged)
+	if b._eventListen != "" {
+		b._bpVarRef.Off(b._eventListen, b._onChanged)
 	}
 
 	b.bpVarGetSet.Destroy()
@@ -204,7 +204,7 @@ type iVarGet struct {
 
 func (b *iVarGet) UseType(port *Port) {
 	if !b.bpVarGetSet.UseType(port) {
-		b.bpVarGetSet.UseType_(port, b.QReinitPort())
+		b.bpVarGetSet.UseType_(port, b._reinitPort())
 	}
 }
 
@@ -213,18 +213,18 @@ func (b *iVarGet) ChangeVar(name string, scopeId int) {
 	b.Iface.Title = "Set " + name
 
 	temp := scope[b.Iface.Data["name"].Get().(string)]
-	b.QBpVarRef = temp
+	b._bpVarRef = temp
 	if temp.Type == 0 { // Type not set
 		return
 	}
 
-	b.QReinitPort()
+	b._reinitPort()
 }
 
-func (b *iVarGet) QReinitPort() *Port {
+func (b *iVarGet) _reinitPort() *Port {
 	input := b.Iface.Input
 	node := b.Node
-	temp := b.QBpVarRef
+	temp := b._bpVarRef
 
 	if _, exist := input["Val"]; exist {
 		node.DeletePort("Input", "Val")
@@ -257,8 +257,8 @@ func init() {
 
 			iface.Title = "VarSet"
 			iface.Embed.(*iVarSet).Type = "bp-var-set"
-			iface.QEnum = nodes.BPVarSet
-			iface.QDynamicPort = true
+			iface._enum = nodes.BPVarSet
+			iface._dynamicPort = true
 		},
 	}
 
@@ -285,8 +285,8 @@ func init() {
 
 			iface.Title = "VarGet"
 			iface.Embed.(*iVarGet).Type = "bp-var-get"
-			iface.QEnum = nodes.BPVarGet
-			iface.QDynamicPort = true
+			iface._enum = nodes.BPVarGet
+			iface._dynamicPort = true
 		},
 	}
 

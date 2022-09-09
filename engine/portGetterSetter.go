@@ -14,7 +14,7 @@ func (gs *portInputGetterSetter) Set(val any) {
 }
 
 func (gs *portInputGetterSetter) Call() {
-	gs.port.QFunc(gs.port)
+	gs.port._func(gs.port)
 	gs.port.Iface.Node.Routes.RouteOut()
 }
 
@@ -49,9 +49,9 @@ func (gs *portInputGetterSetter) Get() any {
 		}
 
 		if target.Value == nil {
-			port.Iface.QRequesting = true
+			port.Iface._requesting = true
 			target.Iface.Node.Request(temp)
-			port.Iface.QRequesting = false
+			port.Iface._requesting = false
 		}
 
 		// fmt.Printf("1. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
@@ -85,9 +85,9 @@ func (gs *portInputGetterSetter) Get() any {
 		}
 
 		if target.Value == nil {
-			port.Iface.QRequesting = true
+			port.Iface._requesting = true
 			target.Iface.Node.Request(cable)
-			port.Iface.QRequesting = false
+			port.Iface._requesting = false
 		}
 
 		// fmt.Printf("2. %s -> %s (%s)\n", port.Name, target.Name, target.Value)
@@ -147,7 +147,7 @@ func (gs *portOutputGetterSetter) Call() {
 
 			// fmt.Println(cable.String())
 			if target.Name_ != nil {
-				target.Iface.QParentFunc.Node.Output[target.Name_.Name].Call()
+				target.Iface._parentFunc.Node.Output[target.Name_.Name].Call()
 			} else {
 				target.Iface.Node.Input[target.Name].Call()
 			}

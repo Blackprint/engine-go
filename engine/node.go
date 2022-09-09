@@ -42,7 +42,7 @@ type Node struct {
 	// Property map[string]getterSetter
 
 	// For internal library use only
-	QFuncInstance *bpFunction
+	_funcInstance *bpFunction
 	RefOutput     map[string]*portOutputGetterSetter
 	// RefInput      map[string]*portInputGetterSetter
 }
@@ -78,7 +78,7 @@ var QNodeList = map[string]*NodeRegister{}
 var QInterfaceList = map[string]*InterfaceRegister{}
 
 func (n *Node) SetInterface(namespace ...string) *Interface {
-	iface := &Interface{QInitialized: true, Importing: true}
+	iface := &Interface{_initialized: true, Importing: true}
 
 	// Default interface (BP/Default)
 	if len(namespace) == 0 {
@@ -97,7 +97,7 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 		utils.SetProperty(val, "Iface", iface)
 	}
 
-	iface.QInitialized = true
+	iface._initialized = true
 	iface.Importing = true
 	n.Iface = iface
 
@@ -105,7 +105,7 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 }
 
 func (n *Node) CreatePort(which string, name string, config_ any) *Port {
-	port := n.Iface.QCreatePort(which, name, config_)
+	port := n.Iface._createPort(which, name, config_)
 
 	if which != "input" {
 		ifacePort := n.Iface.Input
@@ -184,5 +184,5 @@ func (n *Node) DeletePort(which string, name string) {
 }
 
 func (n *Node) Log(message string) {
-	n.Instance.QLog(n.Iface, message)
+	n.Instance._log(n.Iface, message)
 }

@@ -3,7 +3,7 @@ package engine
 import "regexp"
 
 type environment struct {
-	QNoEvent bool
+	_noEvent bool
 	Map      map[string]string
 }
 
@@ -13,11 +13,11 @@ var QEnvironment = &environment{
 
 // arr = ["KEY": "value"]
 func (e *environment) Import(arr map[string]string) {
-	e.QNoEvent = true
+	e._noEvent = true
 	for key, val := range arr {
 		e.Set(key, val)
 	}
-	e.QNoEvent = false
+	e._noEvent = false
 	Event.Emit("environment.imported", nil)
 }
 
@@ -35,7 +35,7 @@ func (e *environment) Set(key string, val string) {
 
 	e.Map[key] = val
 
-	if !e.QNoEvent {
+	if !e._noEvent {
 		Event.Emit("environment.added", &EnvironmentEvent{
 			Key:   key,
 			Value: val,

@@ -15,7 +15,7 @@ type routePort struct {
 	Iface      *Interface
 
 	// for internal library use only
-	QIsPaused bool
+	_isPaused bool
 }
 
 func newRoutePort(iface *Interface) *routePort {
@@ -50,7 +50,7 @@ func (r *routePort) RouteTo(iface *Interface) {
 	r.Out = cable
 	port.In = append(port.In, cable) // ToDo: check if this empty if the connected cable was disconnected
 
-	cable.QConnected()
+	cable._connected()
 }
 
 func (r *routePort) ConnectCable(cable *Cable) bool {
@@ -61,7 +61,7 @@ func (r *routePort) ConnectCable(cable *Cable) bool {
 	r.In = append(r.In, cable)
 	cable.Input = r.Port
 	cable.Target = r.Port
-	cable.QConnected()
+	cable._connected()
 
 	return true
 }
@@ -80,8 +80,8 @@ func (r *routePort) RouteOut() {
 	}
 
 	if r.Out == nil {
-		if r.Iface.QEnum == nodes.BPFnOutput {
-			node := r.Iface.QFuncMain.Node
+		if r.Iface._enum == nodes.BPFnOutput {
+			node := r.Iface._funcMain.Node
 			route := node.Routes
 			route.RouteIn(nil)
 		}
@@ -94,15 +94,15 @@ func (r *routePort) RouteOut() {
 		return
 	}
 
-	enum := targetRoute.Iface.QEnum
+	enum := targetRoute.Iface._enum
 
 	if enum == 0 {
 		targetRoute.RouteIn(r.Out)
 	} else if enum == nodes.BPFnMain {
-		routes := targetRoute.Iface.QProxyInput.Routes
+		routes := targetRoute.Iface._proxyInput.Routes
 		routes.RouteIn(r.Out)
 	} else if enum == nodes.BPFnOutput {
-		node := targetRoute.Iface.QFuncMain.Node
+		node := targetRoute.Iface._funcMain.Node
 		routes := node.Routes
 		routes.RouteIn(r.Out)
 	} else {

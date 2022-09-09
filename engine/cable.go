@@ -16,8 +16,8 @@ type Cable struct {
 	Disabled        int
 	IsRoute         bool
 	Connected       bool
-	QEvDisconnected bool
-	QGhost          bool
+	_evDisconnected bool
+	_ghost          bool
 }
 
 type CableEvent struct {
@@ -50,7 +50,7 @@ func newCable(owner *Port, target *Port) *Cable {
 	}
 }
 
-func (c *Cable) QConnected() {
+func (c *Cable) _connected() {
 	c.Connected = true
 
 	ownerEv := &CableEvent{
@@ -113,7 +113,7 @@ func (c *Cable) Disconnect(which_ ...*Port) { // which = port
 	alreadyEmitToInstance := false
 
 	if c.Input != nil {
-		c.Input.QCache = nil
+		c.Input._cache = nil
 	}
 
 	if c.Owner != nil && (!hasWhich || which == c.Owner) {

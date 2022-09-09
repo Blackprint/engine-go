@@ -27,11 +27,11 @@ type Instance struct {
 	Ref       map[string]*referencesShortcut
 
 	// For internal library use only
-	SharedVariables map[string]*BPVariable
-	QFuncMain       *Interface
-	QFuncInstance   *bpFunction
-	QMainInstance   *Instance
-	QRemote         any
+	sharedVariables map[string]*BPVariable
+	_funcMain       *Interface
+	_funcInstance   *bpFunction
+	_mainInstance   *Instance
+	_remote         any
 }
 
 func New() *Instance {
@@ -112,10 +112,10 @@ func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inse
 		return
 	}
 
-	return instance.ImportJSONParsed(data, options...)
+	return instance.importParsed(data, options...)
 }
 
-func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...ImportOptions) (inserted []*Interface, err error) {
+func (instance *Instance) importParsed(data singleInstanceJSON, options ...ImportOptions) (inserted []*Interface, err error) {
 	hasOption := len(options) != 0
 	options_ := options[0]
 
@@ -166,7 +166,7 @@ func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...I
 			temp, inserted = instance.CreateNode(namespace, iface, inserted)
 
 			ifaceList[iface.I] = temp
-			temp.QBpFnInit()
+			temp._bpFnInit()
 		}
 	}
 
@@ -192,15 +192,15 @@ func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...I
 					linkPortA := Output[portName]
 
 					if linkPortA == nil {
-						if iface.QEnum == nodes.BPFnInput {
-							target := instance.QGetTargetPortType(iface.Node.Instance, "input", ports)
+						if iface._enum == nodes.BPFnInput {
+							target := instance._getTargetPortType(iface.Node.Instance, "input", ports)
 							linkPortA = iface.Embed.(*qBpFnInOut).AddPort(target, portName)
 
 							if linkPortA == nil {
-								panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, iface.QFuncMain.Node.QFuncInstance.Id))
+								panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, iface._funcMain.Node._funcInstance.Id))
 							}
-						} else if iface.QEnum == nodes.BPVarGet {
-							target := instance.QGetTargetPortType(instance, "input", ports)
+						} else if iface._enum == nodes.BPVarGet {
+							target := instance._getTargetPortType(instance, "input", ports)
 							iface.Embed.(*iVarGet).UseType(target)
 							linkPortA = iface.Output[portName]
 						} else {
@@ -220,14 +220,14 @@ func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...I
 						if linkPortB == nil {
 							targetTitle := targetNode.Title
 
-							if targetNode.QEnum == nodes.BPFnOutput {
+							if targetNode._enum == nodes.BPFnOutput {
 								linkPortB = targetNode.Embed.(*qBpFnInOut).AddPort(linkPortA, portName)
 
 								if linkPortB == nil {
-									panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, targetNode.QFuncMain.Node.QFuncInstance.Id))
+									panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, targetNode._funcMain.Node._funcInstance.Id))
 								}
-							} else if targetNode.QEnum == nodes.BPVarGet {
-								target := instance.QGetTargetPortType(instance, "input", ports)
+							} else if targetNode._enum == nodes.BPVarGet {
+								target := instance._getTargetPortType(instance, "input", ports)
 								targetNode.Embed.(*iVarGet).UseType(target)
 								linkPortB = targetNode.Input[target.Name]
 							} else if linkPortA.Type == types.Route {
@@ -260,7 +260,7 @@ func (instance *Instance) ImportJSONParsed(data singleInstanceJSON, options ...I
 
 }
 
-func (instance *Instance) QGetTargetPortType(ins *Instance, which string, targetNodes []nodePortTarget) *Port {
+func (instance *Instance) _getTargetPortType(ins *Instance, which string, targetNodes []nodePortTarget) *Port {
 	target := targetNodes[0] // ToDo: check all target in case if it's supporting Union type
 	targetIface := ins.IfaceList[target.I]
 
@@ -308,7 +308,7 @@ func (instance *Instance) DeleteNode(iface *Interface) {
 	delete(instance.Iface, iface.Id)
 	delete(instance.Ref, iface.Id)
 
-	parent := iface.Node.Instance.QFuncInstance
+	parent := iface.Node.Instance._funcInstance
 	if parent != nil {
 		delete(parent.RootInstance.Ref, iface.Id)
 	}
@@ -394,7 +394,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	// *iface: extends engine.Interface
 	iface := node.Iface
-	if iface == nil || iface.QInitialized == false {
+	if iface == nil || iface._initialized == false {
 		panic(namespace + ": Node interface was not found, do you forget to call node.SetInterface() ?")
 	}
 
@@ -403,7 +403,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 
 	// Create the linker between the nodes and the iface
 	if isFuncNode == false {
-		iface.QPrepare(func_)
+		iface._prepare(func_)
 	}
 
 	if options.Id != "" {
@@ -411,7 +411,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 		instance.Iface[options.Id] = iface
 		instance.Ref[options.Id] = iface.Ref
 
-		parent := iface.Node.QFuncInstance
+		parent := iface.Node._funcInstance
 		if parent != nil {
 			parent.RootInstance.Ref[options.Id] = iface.Ref
 		}
@@ -421,7 +421,7 @@ func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes
 	instance.IfaceList[options.I] = iface
 
 	if options.InputDefault != nil {
-		iface.QImportInputs(options.InputDefault)
+		iface._importInputs(options.InputDefault)
 	}
 
 	savedData := options.Data.(map[string]any)
@@ -486,7 +486,7 @@ type funcOptions struct {
 	Id          string             `json:"id"`
 	Title       string             `json:"title"`
 	Vars        []string           `json:"vars"`
-	PrivateVars []string           `json:"privateVars"`
+	privateVars []string           `json:"privateVars"`
 	Structure   singleInstanceJSON `json:"structure"`
 }
 
@@ -527,25 +527,25 @@ func (instance *Instance) CreateFunction(id string, options any) *bpFunction {
 
 	uniqId := 0
 	temp.Node = func(ins *Instance) *Node {
-		ins.QFuncInstance = temp
+		ins._funcInstance = temp
 
 		node := &Node{
 			Instance:      ins,
-			QFuncInstance: temp,
+			_funcInstance: temp,
 		}
 
 		node.Embed = &bpFunctionNode{}
 
 		iface := node.SetInterface("BPIC/BP/Fn/Main")
 		iface.Embed.(*bpFunctionNode).Type = "function"
-		iface.QEnum = nodes.BPFnMain
+		iface._enum = nodes.BPFnMain
 		iface.Namespace = id
 		iface.Title = title
 
 		uniqId += 1
 		iface.uniqId = uniqId
 
-		iface.QPrepare(meta)
+		iface._prepare(meta)
 		return node
 	}
 
@@ -557,7 +557,7 @@ func (instance *Instance) CreateFunction(id string, options any) *bpFunction {
 		})
 	}
 
-	for _, val := range options_.PrivateVars {
+	for _, val := range options_.privateVars {
 		temp.AddPrivateVars(val)
 	}
 
@@ -572,7 +572,7 @@ type NodeLogEvent struct {
 	Message    string
 }
 
-func (instance *Instance) QLog(iface *Interface, message string) {
+func (instance *Instance) _log(iface *Interface, message string) {
 	evData := NodeLogEvent{
 		Instance:   instance,
 		Iface:      iface,
@@ -580,8 +580,8 @@ func (instance *Instance) QLog(iface *Interface, message string) {
 		Message:    message,
 	}
 
-	if instance.QMainInstance != nil {
-		instance.QMainInstance.Emit("log", evData)
+	if instance._mainInstance != nil {
+		instance._mainInstance.Emit("log", evData)
 	} else {
 		instance.Emit("log", evData)
 	}

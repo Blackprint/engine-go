@@ -37,13 +37,13 @@ func (b *bpEnvGetSet) Imported(data map[string]any) {
 
 type iEnvGet struct {
 	*bpEnvGetSet
-	QListener func(any)
+	_listener func(any)
 }
 
 func (b *iEnvGet) Imported(data map[string]any) {
 	b.bpEnvGetSet.Imported(data)
 
-	b.QListener = func(v any) {
+	b._listener = func(v any) {
 		ev := v.(*EnvironmentEvent)
 		if ev.Key != b.Iface.Data["name"].Get().(string) {
 			return
@@ -52,16 +52,16 @@ func (b *iEnvGet) Imported(data map[string]any) {
 		b.Ref.Output["Val"].Set(ev.Value)
 	}
 
-	Event.On("environment.changed environment.added", b.QListener)
+	Event.On("environment.changed environment.added", b._listener)
 	b.Ref.Output["Val"].Set(QEnvironment.Map[b.Iface.Data["name"].Get().(string)])
 }
 
 func (b *iEnvGet) Destroy() {
-	if b.QListener == nil {
+	if b._listener == nil {
 		return
 	}
 
-	Event.Off("environment.changed environment.added", b.QListener)
+	Event.Off("environment.changed environment.added", b._listener)
 }
 
 type iEnvSet struct {
@@ -85,7 +85,7 @@ func init() {
 
 			iface.Title = "EnvGet"
 			iface.Embed.(*iEnvGet).Type = "bp-env-get"
-			iface.QEnum = nodes.BPEnvGet
+			iface._enum = nodes.BPEnvGet
 		},
 	}
 
@@ -113,7 +113,7 @@ func init() {
 
 			iface.Title = "EnvSet"
 			iface.Embed.(*iEnvSet).Type = "bp-env-set"
-			iface.QEnum = nodes.BPEnvSet
+			iface._enum = nodes.BPEnvSet
 		},
 	}
 

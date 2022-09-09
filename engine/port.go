@@ -28,7 +28,7 @@ type Port struct {
 	Value       any // Dynamic data (depend on Type) for storing port value (int, string, map, etc..)
 	Sync        bool
 	Feature     int
-	QFeature    *portFeature // For caching the configuration
+	_feature    *portFeature // For caching the configuration
 	Struct      map[string]PortStructTemplate
 	Splitted    bool
 	AllowResync bool // Retrigger connected node's .update when the output value is similar
@@ -37,14 +37,14 @@ type Port struct {
 	RoutePort *routePort
 
 	// Internal/Private property
-	QCache          any
-	QParent         *Port
-	QStructSplitted bool
-	QGhost          bool
-	QFunc           func(*Port)
-	QCallAll        func(*Port)
-	QOnConnect      func(*Cable, *Port) bool
-	QWaitPortInit   func(*Port)
+	_cache          any
+	_parent         *Port
+	_structSplitted bool
+	_ghost          bool
+	_func           func(*Port)
+	_callAll        func(*Port)
+	_onConnect      func(*Cable, *Port) bool
+	_waitPortInit   func(*Port)
 }
 
 /** For internal library use only */
@@ -77,14 +77,14 @@ type portFeature struct {
 	Func  func(*Port)
 }
 
-func (port *Port) QGetPortFeature() *portFeature {
-	return port.QFeature
+func (port *Port) _getPortFeature() *portFeature {
+	return port._feature
 }
 func (port *Port) DisconnectAll() {
-	hasRemote := port.Iface.Node.Instance.QRemote == nil
+	hasRemote := port.Iface.Node.Instance._remote == nil
 	for _, cable := range port.Cables {
 		if hasRemote {
-			cable.QEvDisconnected = true
+			cable._evDisconnected = true
 		}
 
 		cable.Disconnect()
@@ -109,7 +109,7 @@ func (port *Port) sync() {
 			continue
 		}
 
-		inp.QCache = nil
+		inp._cache = nil
 
 		temp := &PortValueEvent{
 			Target: inp,
@@ -126,13 +126,13 @@ func (port *Port) sync() {
 		}
 
 		node := inpIface.Node
-		if inpIface.QRequesting == false && len(node.Routes.In) == 0 {
+		if inpIface._requesting == false && len(node.Routes.In) == 0 {
 			node.Update(cable)
 
-			if inpIface.QEnum == nodes.BPFnMain {
+			if inpIface._enum == nodes.BPFnMain {
 				node.Routes.RouteOut()
 			} else {
-				inpIface.QProxyInput.Routes.RouteOut()
+				inpIface._proxyInput.Routes.RouteOut()
 			}
 		}
 	}
@@ -161,7 +161,7 @@ type CableErrorEvent struct {
 	Message  string
 }
 
-func (port *Port) QCableConnectError(name string, obj *CableErrorEvent, severe bool) {
+func (port *Port) _cableConnectError(name string, obj *CableErrorEvent, severe bool) {
 	msg := "Cable notify: " + name
 	if obj.Iface != nil {
 		msg += "\nIFace: " + obj.Iface.Namespace
@@ -186,7 +186,7 @@ func (port *Port) QCableConnectError(name string, obj *CableErrorEvent, severe b
 }
 func (port *Port) ConnectCable(cable *Cable) bool {
 	if cable.IsRoute {
-		port.QCableConnectError("cable.not_route_port", &CableErrorEvent{
+		port._cableConnectError("cable.not_route_port", &CableErrorEvent{
 			Cable:  cable,
 			Port:   port,
 			Target: cable.Owner,
@@ -201,13 +201,13 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 		return false
 	}
 
-	if (port.QOnConnect != nil && port.QOnConnect(cable, cable.Owner)) || (cable.Owner.QOnConnect != nil && cable.Owner.QOnConnect(cable, port)) {
+	if (port._onConnect != nil && port._onConnect(cable, cable.Owner)) || (cable.Owner._onConnect != nil && cable.Owner._onConnect(cable, port)) {
 		return false
 	}
 
 	// Remove cable if ...
 	if (cable.Source == PortOutput && port.Source != PortInput) /* Output source not connected to input */ || (cable.Source == PortInput && port.Source != PortOutput) /* Input source not connected to output */ {
-		port.QCableConnectError("cable.wrong_pair", &CableErrorEvent{
+		port._cableConnectError("cable.wrong_pair", &CableErrorEvent{
 			Cable:  cable,
 			Port:   port,
 			Target: cable.Owner,
@@ -219,7 +219,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 
 	if cable.Owner.Source == PortOutput {
 		if (port.Feature == PortTypeArrayOf && !portArrayOf_validate(port, cable.Owner)) || (port.Feature == PortTypeUnion && !portUnion_validate(port, cable.Owner)) {
-			port.QCableConnectError("cable.wrong_type", &CableErrorEvent{
+			port._cableConnectError("cable.wrong_type", &CableErrorEvent{
 				Cable:  cable,
 				Iface:  port.Iface,
 				Port:   cable.Owner,
@@ -231,7 +231,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 		}
 	} else if port.Source == PortOutput {
 		if (cable.Owner.Feature == PortTypeArrayOf && !portArrayOf_validate(cable.Owner, port)) || (cable.Owner.Feature == PortTypeUnion && !portUnion_validate(cable.Owner, port)) {
-			port.QCableConnectError("cable.wrong_type", &CableErrorEvent{
+			port._cableConnectError("cable.wrong_type", &CableErrorEvent{
 				Cable:  cable,
 				Iface:  port.Iface,
 				Port:   port,
@@ -259,7 +259,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	// Remove cable if type restriction
 	// if !isInstance || (cable.Owner.Type == types.Function && port.Type != types.Function || cable.Owner.Type != types.Function && port.Type == types.Function) {
 	if cable.Owner.Type == types.Function && port.Type != types.Function || cable.Owner.Type != types.Function && port.Type == types.Function {
-		port.QCableConnectError("cable.wrong_type_pair", &CableErrorEvent{
+		port._cableConnectError("cable.wrong_type_pair", &CableErrorEvent{
 			Cable:  cable,
 			Port:   port,
 			Target: cable.Owner,
@@ -272,8 +272,8 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	// Restrict connection between function input/output node with variable node
 	// Connection to similar node function IO or variable node also restricted
 	// These port is created on runtime dynamically
-	if port.Iface.QDynamicPort && cable.Owner.Iface.QDynamicPort {
-		port.QCableConnectError("cable.unsupported_dynamic_port", &CableErrorEvent{
+	if port.Iface._dynamicPort && cable.Owner.Iface._dynamicPort {
+		port._cableConnectError("cable.unsupported_dynamic_port", &CableErrorEvent{
 			Cable:  cable,
 			Port:   port,
 			Target: cable.Owner,
@@ -286,7 +286,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	// Remove cable if there are similar connection for the ports
 	for _, cable := range cable.Owner.Cables {
 		if utils.Contains(port.Cables, cable) {
-			port.QCableConnectError("cable.duplicate_removed", &CableErrorEvent{
+			port._cableConnectError("cable.duplicate_removed", &CableErrorEvent{
 				Cable:  cable,
 				Port:   port,
 				Target: cable.Owner,
@@ -324,7 +324,7 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 			}
 
 			if temp != nil {
-				inp.QCableConnectError("cable.replaced", &CableErrorEvent{
+				inp._cableConnectError("cable.replaced", &CableErrorEvent{
 					Cable:    cable,
 					OldCable: temp,
 					Port:     inp,
@@ -340,14 +340,14 @@ func (port *Port) ConnectCable(cable *Cable) bool {
 	// Connect this cable into port's cable list
 	port.Cables = append(port.Cables, cable)
 	// cable.Connecting()
-	cable.QConnected()
+	cable._connected()
 
 	return true
 }
 func (port *Port) ConnectPort(portTarget *Port) bool {
 	cable := newCable(portTarget, port)
-	if portTarget.QGhost {
-		cable.QGhost = true
+	if portTarget._ghost {
+		cable._ghost = true
 	}
 
 	portTarget.Cables = append(portTarget.Cables, cable)

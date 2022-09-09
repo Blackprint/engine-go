@@ -46,8 +46,8 @@ func portStructOf_split(port *Port) {
 	for key, val := range *struct_ {
 		name := port.Name + key
 		newPort := node.CreatePort("output", name, val.Type)
-		newPort.QParent = port
-		newPort.QStructSplitted = true
+		newPort._parent = port
+		newPort._structSplitted = true
 	}
 
 	port.Splitted = true
@@ -60,7 +60,7 @@ func portStructOf_split(port *Port) {
 }
 
 func portStructOf_unsplit(port *Port) {
-	parent := port.QParent
+	parent := port._parent
 	if parent == nil && port.Struct != nil {
 		parent = port
 	}
