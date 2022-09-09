@@ -42,7 +42,7 @@ type Port struct {
 	QStructSplitted bool
 	QGhost          bool
 	QFunc           func(*Port)
-	QCallAll        func()
+	QCallAll        func(*Port)
 	QOnConnect      func(*Cable, *Port) bool
 	QWaitPortInit   func(*Port)
 }
@@ -168,11 +168,11 @@ func (port *Port) QCableConnectError(name string, obj *CableErrorEvent, severe b
 	}
 
 	if obj.Port != nil {
-		msg += fmt.Sprintf("\nFrom port: %s (iface: %s)\n - Type: %s) (%s)", obj.Port.Name, obj.Port.Iface.Namespace, obj.Port.Source, obj.Port.Type)
+		msg += fmt.Sprintf("\nFrom port: %s (iface: %s)\n - Type: %d) (%d)", obj.Port.Name, obj.Port.Iface.Namespace, obj.Port.Source, obj.Port.Type)
 	}
 
 	if obj.Target != nil {
-		msg += fmt.Sprintf("\nTo port: %s (iface: %s)\n - Type: %s) (%s)", obj.Target.Name, obj.Target.Iface.Namespace, obj.Target.Source, obj.Target.Type)
+		msg += fmt.Sprintf("\nTo port: %s (iface: %s)\n - Type: %d) (%d)", obj.Target.Name, obj.Target.Iface.Namespace, obj.Target.Source, obj.Target.Type)
 	}
 
 	obj.Message = msg

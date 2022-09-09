@@ -43,17 +43,17 @@ func (this *InputSimpleIFace) Changed(val any) {
 }
 
 type MyData struct {
-	Iface any
-	val   any
+	engine.GetterSetter
+	Value any
 }
 
 func (gs *MyData) Set(val any) {
-	gs.val = val
-	gs.Iface.(*InputSimpleIFace).Changed(gs.val)
+	gs.Value = val
+	gs.Iface.Embed.(*InputSimpleIFace).Changed(gs.Value)
 }
 
 func (gs *MyData) Get() any {
-	return gs.val
+	return gs.Value
 }
 
 // This will be called from example.go
@@ -80,7 +80,7 @@ func init() {
 		func(node *engine.Node) *engine.Interface {
 			iface := &engine.Interface{
 				Data: engine.InterfaceData{
-					"value": &MyData{val: "..."},
+					"value": &MyData{Value: "..."},
 				},
 				Embed: &InputSimpleIFace{},
 			}

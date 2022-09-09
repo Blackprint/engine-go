@@ -1,25 +1,24 @@
-package blackprint
+package engine
 
 import (
-	"github.com/blackprint/engine-go/engine"
 	"github.com/blackprint/engine-go/engine/nodes"
 	"github.com/blackprint/engine-go/types"
 )
 
 type bpEnvGet struct {
-	*engine.EmbedNode
+	*EmbedNode
 }
 
 type bpEnvSet struct {
-	*engine.EmbedNode
+	*EmbedNode
 }
 
-func (b *bpEnvSet) Update(c *engine.Cable) {
-	Environment.Set(b.Iface.Data["name"].Get().(string), c.GetValue().(string))
+func (b *bpEnvSet) Update(c *Cable) {
+	QEnvironment.Set(b.Iface.Data["name"].Get().(string), c.GetValue().(string))
 }
 
 type bpEnvGetSet struct {
-	*engine.EmbedInterface
+	*EmbedInterface
 	Type string
 }
 
@@ -31,8 +30,8 @@ func (b *bpEnvGetSet) Imported(data map[string]any) {
 	b.Iface.Data["name"].Set(data["name"])
 	name := data["name"].(string)
 
-	if _, exists := Environment.Map[name]; !exists {
-		Environment.Set(name, "")
+	if _, exists := QEnvironment.Map[name]; !exists {
+		QEnvironment.Set(name, "")
 	}
 }
 
@@ -45,7 +44,7 @@ func (b *iEnvGet) Imported(data map[string]any) {
 	b.bpEnvGetSet.Imported(data)
 
 	b.QListener = func(v any) {
-		ev := v.(*engine.EnvironmentEvent)
+		ev := v.(*EnvironmentEvent)
 		if ev.Key != b.Iface.Data["name"].Get().(string) {
 			return
 		}
@@ -54,7 +53,7 @@ func (b *iEnvGet) Imported(data map[string]any) {
 	}
 
 	Event.On("environment.changed environment.added", b.QListener)
-	b.Ref.Output["Val"].Set(Environment.Map[b.Iface.Data["name"].Get().(string)])
+	b.Ref.Output["Val"].Set(QEnvironment.Map[b.Iface.Data["name"].Get().(string)])
 }
 
 func (b *iEnvGet) Destroy() {
@@ -70,13 +69,14 @@ type iEnvSet struct {
 }
 
 func init() {
-	RegisterNode("BP/Env/Get", &engine.NodeMetadata{
-		Output: engine.NodePortTemplate{
-			"Val": types.String,
+	QNodeList["BP/Env/Get"] = &QNodeRegister{
+		Metadata: &NodeMetadata{
+			Output: NodePortTemplate{
+				"Val": types.String,
+			},
 		},
-	},
-		func(i *engine.Instance) *engine.Node {
-			node := &engine.Node{
+		Constructor: func(i *Instance) *Node {
+			node := &Node{
 				Instance: i,
 				Embed:    &bpEnvGet{},
 			}
@@ -84,8 +84,8 @@ func init() {
 			iface := node.SetInterface("BPIC/BP/Env/Get")
 
 			// Specify data field from here to make it enumerable and exportable
-			iface.Data = engine.InterfaceData{
-				"name": &engine.GetterSetter{Value: ""},
+			iface.Data = InterfaceData{
+				"name": &GetterSetter{Value: ""},
 			}
 
 			iface.Title = "EnvGet"
@@ -93,25 +93,25 @@ func init() {
 			iface.QEnum = nodes.BPEnvGet
 
 			return node
-		})
-
-	RegisterInterface("BPIC/BP/Env/Get",
-		func(node *engine.Node) *engine.Interface {
-			return &engine.Interface{
-				Node: node,
-				Embed: &iEnvGet{
-					bpEnvGetSet: &bpEnvGetSet{},
-				},
-			}
-		})
-
-	RegisterNode("BP/Env/Set", &engine.NodeMetadata{
-		Input: engine.NodePortTemplate{
-			"Val": types.String,
 		},
-	},
-		func(i *engine.Instance) *engine.Node {
-			node := &engine.Node{
+	}
+
+	QInterfaceList["BPIC/BP/Env/Get"] = func(node *Node) *Interface {
+		return &Interface{
+			Embed: &iEnvGet{
+				bpEnvGetSet: &bpEnvGetSet{},
+			},
+		}
+	}
+
+	QNodeList["BP/Env/Set"] = &QNodeRegister{
+		Metadata: &NodeMetadata{
+			Input: NodePortTemplate{
+				"Val": types.String,
+			},
+		},
+		Constructor: func(i *Instance) *Node {
+			node := &Node{
 				Instance: i,
 				Embed:    &bpEnvSet{},
 			}
@@ -119,8 +119,8 @@ func init() {
 			iface := node.SetInterface("BPIC/BP/Env/Set")
 
 			// Specify data field from here to make it enumerable and exportable
-			iface.Data = engine.InterfaceData{
-				"name": &engine.GetterSetter{Value: ""},
+			iface.Data = InterfaceData{
+				"name": &GetterSetter{Value: ""},
 			}
 
 			iface.Title = "EnvSet"
@@ -128,15 +128,14 @@ func init() {
 			iface.QEnum = nodes.BPEnvSet
 
 			return node
-		})
+		},
+	}
 
-	RegisterInterface("BPIC/BP/Env/Set",
-		func(node *engine.Node) *engine.Interface {
-			return &engine.Interface{
-				Node: node,
-				Embed: &iEnvSet{
-					bpEnvGetSet: &bpEnvGetSet{},
-				},
-			}
-		})
+	QInterfaceList["BPIC/BP/Env/Set"] = func(node *Node) *Interface {
+		return &Interface{
+			Embed: &iEnvSet{
+				bpEnvGetSet: &bpEnvGetSet{},
+			},
+		}
+	}
 }

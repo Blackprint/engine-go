@@ -21,12 +21,13 @@ func (b *bpVarValue) Set(val any) {
 // used for instance.CreateVariable
 type BPVariable struct {
 	*CustomEvent
-	Id       string
-	Title    string
-	Type     reflect.Kind
-	Used     []*Interface
-	Value    bpVarValue
-	Listener []*Interface
+	Id           string
+	Title        string
+	Type         reflect.Kind
+	Used         []*Interface
+	Value        bpVarValue
+	Listener     []*Interface
+	FuncInstance *BPFunction // for shared function variables
 }
 
 func (b *BPVariable) Destroy() {

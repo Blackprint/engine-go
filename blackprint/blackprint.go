@@ -8,7 +8,10 @@ import (
 
 // The constructor must return pointer (ex: &Node{})
 func RegisterNode(namespace string, meta *engine.NodeMetadata, constructor engine.NodeConstructor) {
-	engine.QNodeList[namespace] = constructor
+	engine.QNodeList[namespace] = &engine.QNodeRegister{
+		Metadata:    meta,
+		Constructor: constructor,
+	}
 }
 
 // The constructor must return pointer (ex: &any)

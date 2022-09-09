@@ -41,7 +41,10 @@ type Node struct {
 	Input  map[string]*PortInputGetterSetter
 	// Property map[string]getterSetter
 
+	// For internal library use only
 	QFuncInstance *BPFunction
+	RefOutput     map[string]*PortOutputGetterSetter
+	// RefInput      map[string]*PortInputGetterSetter
 }
 
 // Proxies, for library only
@@ -63,7 +66,7 @@ type NodeConstructor func(*Instance) *Node
 type InterfaceConstructor func(*Node) *Interface
 
 // QNodeList = Private function, for internal library only
-var QNodeList = map[string]NodeConstructor{}
+var QNodeList = map[string]*QNodeRegister{}
 
 // QInterfaceList = Private function, for internal library only
 var QInterfaceList = map[string]InterfaceConstructor{}
@@ -90,7 +93,7 @@ func (n *Node) SetInterface(namespace ...string) *Interface {
 	}
 
 	for _, val := range iface.Data {
-		val.Iface = iface
+		utils.SetProperty(val, "Iface", iface)
 	}
 
 	iface.QInitialized = true

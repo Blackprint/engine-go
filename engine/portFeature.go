@@ -68,7 +68,7 @@ func portStructOf_unsplit(port *Port) {
 	parent.Splitted = false
 	node := port.Iface.Node
 
-	for key, _ := range parent.Struct {
+	for key := range parent.Struct {
 		node.DeletePort("output", parent.Name+key)
 	}
 }
@@ -85,7 +85,7 @@ func portStructOf_handle(port *Port, data any) {
 			}
 		}
 	} else {
-		for key, _ := range port.Struct {
+		for key := range port.Struct {
 			output[key].Set(nil)
 		}
 	}

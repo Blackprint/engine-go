@@ -35,6 +35,7 @@ type Interface struct {
 	*CustomEvent
 
 	Id        string
+	uniqId    int // For BPFunction only
 	I         int // index
 	Title     string
 	Namespace string
@@ -54,7 +55,7 @@ type Interface struct {
 	// for internal library use only
 	QInitialized bool
 	QRequesting  bool
-	QFuncMain    *NodesFunctionMain
+	QFuncMain    *Interface
 	QDynamicPort bool
 	QEnum        int
 	QBpVarRef    *BPVariable
@@ -217,7 +218,7 @@ func (iface *Interface) QInitPortSwitches(portSwitches map[string]int) {
 }
 
 // Load saved port data value
-func (iface *Interface) QImportInputs(ports map[string]*Port) {
+func (iface *Interface) QImportInputs(ports map[string]any) {
 	for key, val := range ports {
 		iface.Input[key].Default = val
 	}

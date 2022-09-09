@@ -82,8 +82,8 @@ func (r *RoutePort) RouteOut() {
 	if r.Out == nil {
 		if r.Iface.QEnum == nodes.BPFnOutput {
 			node := r.Iface.QFuncMain.Node
-			route := node.Routes.(*RoutePort)
-			route.RouteIn()
+			route := node.Routes
+			route.RouteIn(nil)
 		}
 
 		return
@@ -103,7 +103,7 @@ func (r *RoutePort) RouteOut() {
 		routes.RouteIn(r.Out)
 	} else if enum == nodes.BPFnOutput {
 		node := targetRoute.Iface.QFuncMain.Node
-		routes := node.Routes.(*RoutePort)
+		routes := node.Routes
 		routes.RouteIn(r.Out)
 	} else {
 		targetRoute.RouteIn(r.Out)
