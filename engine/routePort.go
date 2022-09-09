@@ -102,9 +102,8 @@ func (r *routePort) RouteOut() {
 		routes := targetRoute.Iface._proxyInput.Routes
 		routes.RouteIn(r.Out)
 	} else if enum == nodes.BPFnOutput {
-		node := targetRoute.Iface._funcMain.Node
-		routes := node.Routes
-		routes.RouteIn(r.Out)
+		targetRoute.Iface.Node.Update(nil)
+		targetRoute.Iface._funcMain.Node.Routes.RouteOut()
 	} else {
 		targetRoute.RouteIn(r.Out)
 	}
