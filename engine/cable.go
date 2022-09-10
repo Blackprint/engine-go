@@ -2,12 +2,22 @@ package engine
 
 import (
 	"reflect"
+
+	"github.com/blackprint/engine-go/utils"
 )
 
 type Cable struct {
-	Type   reflect.Kind
-	Owner  *Port
-	Target *Port
+	Type            reflect.Kind
+	Owner           *Port
+	Target          *Port
+	Input           *Port
+	Output          *Port
+	Source          int
+	Disabled        int
+	IsRoute         bool
+	Connected       bool
+	_evDisconnected bool
+	_ghost          bool
 }
 
 type CableEvent struct {
@@ -16,42 +26,136 @@ type CableEvent struct {
 	Target *Port
 }
 
-func NewCable(owner *Port, target *Port) Cable {
-	return Cable{
+type PortValueEvent = CableEvent
+
+func newCable(owner *Port, target *Port) *Cable {
+	var input *Port
+	var output *Port
+
+	if owner.Source == PortInput {
+		input = owner
+		output = target
+	} else {
+		output = owner
+		input = target
+	}
+
+	return &Cable{
 		Type:   owner.Type,
+		Source: owner.Source,
 		Owner:  owner,
 		Target: target,
+		Input:  input,
+		Output: output,
 	}
 }
 
-func (c *Cable) QConnected() {
-	c.Owner.QTrigger("cable.connect", CableEvent{
+func (c *Cable) _connected() {
+	c.Connected = true
+
+	ownerEv := &CableEvent{
 		Cable:  c,
 		Port:   c.Owner,
 		Target: c.Target,
-	})
+	}
+	c.Owner.Emit("cable.connect", ownerEv)
+	c.Owner.Iface.Emit("cable.connect", ownerEv)
 
-	c.Target.QTrigger("cable.connect", CableEvent{
+	targetEv := &CableEvent{
 		Cable:  c,
 		Port:   c.Target,
 		Target: c.Owner,
-	})
+	}
+	c.Target.Emit("cable.connect", targetEv)
+	c.Target.Iface.Emit("cable.connect", targetEv)
 
-	var inp, out *Port
-	if c.Owner.Source == PortInput {
-		inp = c.Owner
-		out = c.Target
-	} else {
-		inp = c.Target
-		out = c.Owner
+	if c.Output.Value == nil {
+		return
 	}
 
-	if out.Value != nil {
-		inp.QTrigger("value", out)
+	inputEv := &PortValueEvent{
+		Port: c.Output,
 	}
+	c.Input.Emit("value", inputEv)
+	c.Input.Iface.Emit("value", inputEv)
+
+	c.Input.Iface.Node.Update(c)
 }
 
 // For debugging
 func (c *Cable) String() string {
-	return "\nCable: " + c.Owner.Iface.Title + "." + c.Owner.Name + " <=> " + c.Target.Name + "." + c.Target.Iface.Title
+	return "\nCable: " + c.Output.Iface.Title + "." + c.Output.Name + " <=> " + c.Input.Name + "." + c.Input.Iface.Title
+}
+
+func (c *Cable) GetValue() any {
+	return c.Output.Value
+}
+
+func (c *Cable) Disconnect(which_ ...*Port) { // which = port
+	if c.IsRoute { // ToDo: simplify, use 'which' instead of check all
+		if c.Output.Cables != nil {
+			c.Output.Cables = c.Output.Cables[:0]
+		} else if c.Output.RoutePort.Out == c {
+			c.Output.RoutePort.Out = nil
+		} else if c.Input.RoutePort.Out == c {
+			c.Input.RoutePort.Out = nil
+		}
+
+		c.Output.RoutePort.In = utils.RemoveItem(c.Output.RoutePort.In, c)
+		c.Input.RoutePort.In = utils.RemoveItem(c.Input.RoutePort.In, c)
+
+		c.Connected = false
+		return
+	}
+
+	hasWhich := len(which_) == 0
+	which := which_[0]
+	alreadyEmitToInstance := false
+
+	if c.Input != nil {
+		c.Input._cache = nil
+	}
+
+	if c.Owner != nil && (!hasWhich || which == c.Owner) {
+		c.Owner.Cables = utils.RemoveItem(c.Owner.Cables, c)
+
+		if c.Connected {
+			temp := &CableEvent{
+				Cable:  c,
+				Port:   c.Owner,
+				Target: c.Target,
+			}
+
+			c.Owner.Emit("disconnect", temp)
+			c.Owner.Iface.Emit("cable.disconnect", temp)
+			ins := c.Owner.Iface.Node.Instance
+			ins.Emit("cable.disconnect", temp)
+
+			alreadyEmitToInstance = true
+		} else {
+			c.Owner.Iface.Emit("cable.cancel", &CableEvent{
+				Cable:  c,
+				Port:   c.Owner,
+				Target: nil,
+			})
+		}
+	}
+
+	if c.Target != nil && c.Connected && (!hasWhich || which == c.Target) {
+		c.Target.Cables = utils.RemoveItem(c.Target.Cables, c)
+
+		temp := &CableEvent{
+			Cable:  c,
+			Port:   c.Target,
+			Target: c.Owner,
+		}
+
+		c.Target.Emit("disconnect", temp)
+		c.Target.Iface.Emit("cable.disconnect", temp)
+
+		if alreadyEmitToInstance == false {
+			ins := c.Target.Iface.Node.Instance
+			ins.Emit("cable.disconnect", temp)
+		}
+	}
 }

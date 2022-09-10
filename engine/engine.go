@@ -3,139 +3,247 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
+	"regexp"
+	"strings"
 
+	"github.com/blackprint/engine-go/engine/nodes"
+	"github.com/blackprint/engine-go/types"
 	"github.com/blackprint/engine-go/utils"
 )
 
-type NodePort map[string]any
+var Event = &CustomEvent{}
 
+type PortTemplate map[string]any // any = reflect.Kind | portFeature
 type Instance struct {
-	IFace     map[string]any // Storing with node id if exist
-	IFaceList map[int]any    // Storing with node index
-	settings  map[string]bool
+	*CustomEvent
+	Iface        map[string]*Interface // Storing with node id if exist
+	IfaceList    []*Interface          // Storing with node index
+	settings     map[string]bool
+	DisablePorts bool
+	PanicOnError bool
+
+	Variables map[string]*BPVariable
+	Functions map[string]*bpFunction
+	Ref       map[string]*referencesShortcut
+
+	// For internal library use only
+	sharedVariables map[string]*BPVariable
+	_funcMain       *Interface
+	_funcInstance   *bpFunction
+	_mainInstance   *Instance
+	_remote         any
 }
 
 func New() *Instance {
 	return &Instance{
-		IFace:     map[string]any{},
-		IFaceList: map[int]any{},
-		settings:  map[string]bool{},
+		Iface:        map[string]*Interface{},
+		IfaceList:    []*Interface{},
+		settings:     map[string]bool{},
+		PanicOnError: true,
 	}
 }
 
-type Data struct {
+type dataX struct {
 	Value string `json:"value"`
 }
-type Namespace string
-type NodeData struct {
-	Data Data `json:"data,omitempty"`
+type nodeData struct {
+	Data dataX `json:"data,omitempty"`
 }
-type NodeOutput struct {
+type nodeOutput struct {
 	Output []Node `json:"output"`
 }
-type NodeX struct {
+type nodeX struct {
 	Name string  `json:"name"`
 	I    *int64  `json:"i,omitempty"`
 	ID   *string `json:"id,omitempty"`
 
-	NodeData
-	NodeOutput
+	nodeData
+	nodeOutput
 }
-type DataStructure map[Namespace][]NodeX
+type namespace string
+type dataStructure map[namespace][]nodeX
 
 //
 
-type SingleInstanceJSON map[string]nodeList
-type metaValue map[string]string
+type singleInstanceJSON map[string]any // any = nodeList | metadataValue
+type metadataValue map[string]any
 type nodeList []nodeConfig
 type nodeConfig struct {
-	I      int                         `json:"i"`
-	Id     string                      `json:"id"`
-	Data   any                         `json:"data"`
-	Output map[string][]nodePortTarget `json:"output"`
+	I            int                         `json:"i"`
+	Id           string                      `json:"id"`
+	Data         any                         `json:"data"`
+	Output       map[string][]nodePortTarget `json:"output"`
+	InputDefault map[string]any              `json:"input_d"`
+	OutputSwitch map[string]uint             `json:"output_sw"`
+	Route        map[string]uint             `json:"route"`
 }
 type nodePortTarget struct {
 	I    int    `json:"i"`
 	Name string `json:"name"`
 }
 
-type GetterSetter interface {
+type getterSetter interface {
 	Set(val any)
 	Get() any
 }
 
-func (instance *Instance) ImportJSON(str []byte) (err error) {
-	var data SingleInstanceJSON
+type GetterSetter struct {
+	Value any
+	Iface *Interface
+}
+
+func (b *GetterSetter) Get() any {
+	return b.Value
+}
+
+func (b *GetterSetter) Set(Value any) {
+	b.Value = Value
+}
+
+type ImportOptions struct {
+	AppendMode bool
+}
+
+func (instance *Instance) ImportJSON(str []byte, options ...ImportOptions) (inserted []*Interface, err error) {
+	var data singleInstanceJSON
 
 	err = json.Unmarshal(str, &data)
 	if err != nil {
 		return
 	}
 
-	ifaceList := instance.IFaceList
-	var nodes []any
+	return instance.importParsed(data, options...)
+}
+
+func (instance *Instance) importParsed(data singleInstanceJSON, options ...ImportOptions) (inserted []*Interface, err error) {
+	hasOption := len(options) != 0
+	options_ := options[0]
+
+	if hasOption && options_.AppendMode == false {
+		instance.ClearNodes()
+	}
+
+	// Do we need this?
+	// instance.Emit("json.importing", {appendMode: options.appendMode, raw: json})
+
+	ifaceList := instance.IfaceList
+	var metadata metadataValue
+
+	appendLength := 0
+	if options_.AppendMode {
+		appendLength = len(ifaceList)
+	}
+
+	var exist bool
+	if metadata, exist = data["_"].(metadataValue); exist {
+		if list, exist := metadata["env"]; exist {
+			QEnvironment.Import(list.(map[string]string))
+		}
+
+		if list, exist := metadata["functions"].(map[string]any); exist {
+			for key, options := range list {
+				instance.CreateFunction(key, options)
+			}
+		}
+
+		if list, exist := metadata["variables"].(map[string]any); exist {
+			for key, options := range list {
+				instance.CreateVariable(key, options)
+			}
+		}
+
+		delete(data, "_")
+	}
 
 	// Prepare all ifaces based on the namespace
 	// before we create cables for them
 	for namespace, ifaces := range data {
-		if namespace == "_" {
-			// meta := ifaces.(metaValue)
-			continue
-		}
-
-		list := ifaces //.(nodeList)
-
 		// Every ifaces that using this namespace name
-		for _, iface := range list {
-			ifaceList[iface.I], nodes = instance.CreateNode(namespace, iface, nodes)
+		for _, iface := range ifaces.(nodeList) {
+			iface.I += appendLength
+
+			var temp *Interface
+			temp, inserted = instance.CreateNode(namespace, iface, inserted)
+
+			ifaceList[iface.I] = temp
+			temp._bpFnInit()
 		}
 	}
 
 	// Create cable only from output and property
 	// > Important to be separated from above, so the cable can reference to loaded ifaces
 	for _, ifaces := range data {
-		list := ifaces //.(nodeList)
+		list := ifaces.(nodeList)
 
-		for _, iface := range list {
-			current := ifaceList[iface.I]
+		for _, ifaceJSON := range list {
+			iface := ifaceList[ifaceJSON.I]
+
+			if val := ifaceJSON.Route; val != nil {
+				iface.Node.Routes.RouteTo(ifaceList[val["i"]])
+			}
 
 			// If have output connection
-			out := iface.Output
+			out := ifaceJSON.Output
 			if out != nil {
-				Output := *utils.GetPropertyRef(current, "Output").(*map[string]*Port)
+				Output := iface.Output
 
 				// Every output port that have connection
 				for portName, ports := range out {
 					linkPortA := Output[portName]
 
 					if linkPortA == nil {
-						panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", iface.I, portName))
+						if iface._enum == nodes.BPFnInput {
+							target := instance._getTargetPortType(iface.Node.Instance, "input", ports)
+							linkPortA = iface.Embed.(*qBpFnInOut).AddPort(target, portName)
+
+							if linkPortA == nil {
+								panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, iface._funcMain.Node._funcInstance.Id))
+							}
+						} else if iface._enum == nodes.BPVarGet {
+							target := instance._getTargetPortType(instance, "input", ports)
+							iface.Embed.(*iVarGet).UseType(target)
+							linkPortA = iface.Output[portName]
+						} else {
+							panic(fmt.Sprintf("Node port not found for iface (index: %d), with name: %s", ifaceJSON.I, portName))
+						}
 					}
 
 					// Current output's available targets
 					for _, target := range ports {
+						target.I += appendLength
 						targetNode := ifaceList[target.I]
 
-						Input := *utils.GetPropertyRef(targetNode, "Input").(*map[string]*Port)
+						// output can only meet input port
+						Input := targetNode.Input
 						linkPortB := Input[target.Name]
 
 						if linkPortB == nil {
-							targetTitle := utils.GetProperty(targetNode, "Title").(string)
-							panic(fmt.Sprintf("Node port not found for %s with name: %s", targetTitle, target.Name))
+							targetTitle := targetNode.Title
+
+							if targetNode._enum == nodes.BPFnOutput {
+								linkPortB = targetNode.Embed.(*qBpFnInOut).AddPort(linkPortA, portName)
+
+								if linkPortB == nil {
+									panic(fmt.Sprintf("Can't create output port (%s) for function (%s)", portName, targetNode._funcMain.Node._funcInstance.Id))
+								}
+							} else if targetNode._enum == nodes.BPVarGet {
+								target := instance._getTargetPortType(instance, "input", ports)
+								targetNode.Embed.(*iVarGet).UseType(target)
+								linkPortB = targetNode.Input[target.Name]
+							} else if linkPortA.Type == types.Route {
+								linkPortB = targetNode.Node.Routes.Port
+							} else {
+								panic(fmt.Sprintf("Node port not found for %s with name: %s", targetTitle, target.Name))
+							}
 						}
 
 						// For Debugging ->
-						// Title := utils.GetProperty(current, "Title").(string)
-						// targetTitle := utils.GetProperty(targetNode, "Title").(string)
+						// Title := iface.Title
+						// targetTitle := targetNode.Title
 						// fmt.Printf("%s.%s => %s.%s\n", Title, linkPortA.Name, targetTitle, linkPortB.Name)
 						// <- For Debugging
 
-						cable := NewCable(linkPortA, linkPortB)
-						linkPortA.Cables = append(linkPortA.Cables, &cable)
-						linkPortB.Cables = append(linkPortB.Cables, &cable)
-
-						cable.QConnected()
+						linkPortA.ConnectPort(linkPortB)
 						// fmt.Println(cable.String())
 					}
 				}
@@ -144,10 +252,79 @@ func (instance *Instance) ImportJSON(str []byte) (err error) {
 	}
 
 	// Call nodes init after creation processes was finished
-	for _, val := range nodes {
-		utils.CallFunction(val, "Init", utils.EmptyArgs)
+	for _, val := range inserted {
+		val.Init()
 	}
+
 	return
+
+}
+
+func (instance *Instance) _getTargetPortType(ins *Instance, which string, targetNodes []nodePortTarget) *Port {
+	target := targetNodes[0] // ToDo: check all target in case if it's supporting Union type
+	targetIface := ins.IfaceList[target.I]
+
+	if which == "input" {
+		return targetIface.Input[target.Name]
+	} else {
+		return targetIface.Output[target.Name]
+	}
+}
+
+type NodeDeleteEvent struct {
+	Iface any
+}
+
+func (instance *Instance) DeleteNode(iface *Interface) {
+	i := utils.IndexOf(instance.IfaceList, iface)
+	if i == -1 {
+		panic("Node to be deleted was not found")
+	}
+
+	instance.IfaceList = utils.RemoveItemAtIndex(instance.IfaceList, i)
+
+	eventData := &NodeDeleteEvent{
+		Iface: iface,
+	}
+	instance.Emit("node.delete", eventData)
+
+	iface.Node.Destroy()
+	iface.Destroy()
+
+	for _, port := range iface.Output {
+		port.DisconnectAll()
+	}
+
+	routes := iface.Node.Routes
+	for _, cable := range routes.In {
+		cable.Disconnect()
+	}
+
+	if routes.Out != nil {
+		routes.Out.Disconnect()
+	}
+
+	// Delete reference
+	delete(instance.Iface, iface.Id)
+	delete(instance.Ref, iface.Id)
+
+	parent := iface.Node.Instance._funcInstance
+	if parent != nil {
+		delete(parent.RootInstance.Ref, iface.Id)
+	}
+
+	instance.Emit("node.deleted", eventData)
+}
+
+func (instance *Instance) ClearNodes() {
+	for _, iface := range instance.IfaceList {
+		iface.Node.Destroy()
+		iface.Destroy()
+	}
+
+	instance.IfaceList = instance.IfaceList[:0]
+	utils.ClearMap(instance.Iface)
+	utils.ClearMap(instance.Ref)
 }
 
 func (instance *Instance) Settings(id string, val ...bool) bool {
@@ -160,81 +337,258 @@ func (instance *Instance) Settings(id string, val ...bool) bool {
 	return temp
 }
 
-func (instance *Instance) GetNode(id any) any {
-	for _, val := range instance.IFaceList {
-		temp := reflect.ValueOf(val).Elem()
-		if temp.FieldByName("Id").Interface().(string) == id || temp.FieldByName("I").Interface().(int) == id {
-			return utils.GetProperty(val, "Node")
+// Deprecated, use instance.Iface or instance.IfaceList instead
+func (instance *Instance) GetNode(id any) *Interface {
+	for _, val := range instance.IfaceList {
+		if val.Id == id.(string) || val.I == id.(int) {
+			return val
 		}
 	}
 	return nil
 }
 
-func (instance *Instance) GetNodes(namespace string) []any {
-	var got []any // any = extends 'engine.Node'
+func (instance *Instance) GetNodes(namespace string) []*Interface {
+	var got []*Interface
 
-	for _, val := range instance.IFaceList {
-		if utils.GetProperty(val, "Namespace").(string) == namespace {
-			got = append(got, utils.GetProperty(val, "Node"))
+	for _, val := range instance.IfaceList {
+		if val.Namespace == namespace {
+			got = append(got, val)
 		}
 	}
 
 	return got
 }
 
-func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []any) (any, []any) {
+// ToDo: sync with JS, when creating function node this still broken
+func (instance *Instance) CreateNode(namespace string, options nodeConfig, nodes []*Interface) (*Interface, []*Interface) {
 	func_ := QNodeList[namespace]
+	var node *Node
+	var isFuncNode bool
+
 	if func_ == nil {
-		panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
+		if strings.HasPrefix(namespace, "BPI/F/") {
+			temp := instance.Functions[namespace]
+			if temp != nil {
+				node = temp.Node(instance)
+			}
+
+			isFuncNode = true
+		}
+
+		if node == nil {
+			panic("Node nodes for " + namespace + " was not found, maybe .registerNode() haven't being called?")
+		}
+	} else {
+		node = &Node{Instance: instance}
+		func_.Constructor(node)
 	}
 
-	// *node: extends engine.Node
-	node := func_(instance) // func_ from registerNode(namespace, func_)
+	// Disable data flow on any node ports
+	if instance.DisablePorts {
+		node.DisablePorts = true
+	}
+
 	if utils.IsPointer(node) == false {
 		panic(namespace + ": .registerNode() must return pointer")
 	}
 
 	// *iface: extends engine.Interface
-	iface := utils.GetProperty(node, "IFace")
-	if iface == nil || utils.GetProperty(iface, "QInitialized").(bool) == false {
-		panic(namespace + ": Node interface was not found, do you forget to call node->setInterface() ?")
+	iface := node.Iface
+	if iface == nil || iface._initialized == false {
+		panic(namespace + ": Node interface was not found, do you forget to call node.SetInterface() ?")
 	}
 
-	utils.SetProperty(iface, "Node", node)
+	iface.Node = node
+	iface.Namespace = namespace
 
-	// Assign the saved options if exist
-	// Must be called here to avoid port trigger
-	if options.Data != nil {
-		data := utils.GetPropertyRef(iface, "Data").(*InterfaceData)
-		if data != nil {
-			deepMerge(data, options.Data.(map[string]any))
+	// Create the linker between the nodes and the iface
+	if isFuncNode == false {
+		iface._prepare(func_)
+	}
+
+	if options.Id != "" {
+		iface.Id = options.Id
+		instance.Iface[options.Id] = iface
+		instance.Ref[options.Id] = iface.Ref
+
+		parent := iface.Node._funcInstance
+		if parent != nil {
+			parent.RootInstance.Ref[options.Id] = iface.Ref
 		}
 	}
 
-	utils.SetProperty(iface, "Namespace", namespace)
+	iface.I = options.I
+	instance.IfaceList[options.I] = iface
 
-	// Create the linker between the nodes and the iface
-	utils.CallFunction(iface, "QPrepare", utils.EmptyArgs)
-
-	if options.Id != "" {
-		utils.SetProperty(iface, "Id", options.Id)
-		instance.IFace[options.Id] = iface
+	if options.InputDefault != nil {
+		iface._importInputs(options.InputDefault)
 	}
 
-	utils.SetProperty(iface, "I", options.I)
-	instance.IFaceList[options.I] = iface
+	savedData := options.Data.(map[string]any)
 
-	utils.SetProperty(iface, "Importing", false)
-	utils.CallFunction(node, "Imported", utils.EmptyArgs)
+	if options.OutputSwitch != nil {
+		for key, val := range options.OutputSwitch {
+			if (val | 1) == 1 {
+				portStructOf_split(iface.Output[key])
+			}
 
+			if (val | 2) == 2 {
+				iface.Output[key].AllowResync = true
+			}
+		}
+	}
+
+	iface.Importing = false
+
+	iface.Imported(savedData)
+	node.Imported(savedData)
+
+	iface.Init()
 	if nodes != nil {
-		nodes = append(nodes, node)
+		nodes = append(nodes, iface)
+	} else {
+		// Init now if not A batch creation
+		node.Init()
 	}
-
-	utils.CallFunction(node, "Init", utils.EmptyArgs)
-	utils.CallFunction(iface, "Init", utils.EmptyArgs)
 
 	return iface, nodes
+}
+
+var createBPVariableRegx = regexp.MustCompile(`[` + "`" + `~!@#$%^&*()\-_+={}\[\]:"|;\'\\\\,.\/<>?]+`)
+
+type varOptions struct {
+	Id    string `json:"id"`
+	Title string `json:"title"`
+}
+
+func (instance *Instance) CreateVariable(id string, options any) *BPVariable {
+	id = createBPVariableRegx.ReplaceAllString(id, "_")
+
+	if old, exist := instance.Variables[id]; exist {
+		old.Destroy()
+		delete(instance.Variables, id)
+	}
+
+	// options_ = options.(varOptions)
+
+	temp := &BPVariable{
+		Id:    id,
+		Title: id,
+		Type:  0, // Type not set
+	}
+	instance.Variables[id] = temp
+	instance.Emit("variable.new", temp)
+
+	return temp
+}
+
+type funcOptions struct {
+	Id          string             `json:"id"`
+	Title       string             `json:"title"`
+	Vars        []string           `json:"vars"`
+	privateVars []string           `json:"privateVars"`
+	Structure   singleInstanceJSON `json:"structure"`
+}
+
+func (instance *Instance) CreateFunction(id string, options any) *bpFunction {
+	id = createBPVariableRegx.ReplaceAllString(id, "_")
+
+	if old, exist := instance.Functions[id]; exist {
+		old.Destroy()
+		delete(instance.Functions, id)
+	}
+
+	options_ := options.(funcOptions)
+
+	// This will be updated if the function sketch was modified
+	structure := options_.Structure
+	if structure == nil {
+		structure = singleInstanceJSON{
+			"BP/Fn/Input":  nodeList{nodeConfig{I: 0}},
+			"BP/Fn/Output": nodeList{nodeConfig{I: 1}},
+		}
+	}
+
+	title := id
+	temp := &bpFunction{
+		Id:           id,
+		Title:        title,
+		Type:         0, // Type not set
+		Structure:    structure,
+		RootInstance: instance,
+		Input:        PortTemplate{},
+		Output:       PortTemplate{},
+	}
+
+	meta := &NodeRegister{
+		Input:  temp.Input,
+		Output: temp.Output,
+	}
+
+	uniqId := 0
+	temp.Node = func(ins *Instance) *Node {
+		ins._funcInstance = temp
+
+		node := &Node{
+			Instance:      ins,
+			_funcInstance: temp,
+		}
+
+		node.Embed = &bpFunctionNode{}
+
+		iface := node.SetInterface("BPIC/BP/Fn/Main")
+		iface.Embed.(*bpFunctionNode).Type = "function"
+		iface._enum = nodes.BPFnMain
+		iface.Namespace = id
+		iface.Title = title
+
+		uniqId += 1
+		iface.uniqId = uniqId
+
+		iface._prepare(meta)
+		return node
+	}
+
+	instance.Functions[id] = temp
+
+	for _, val := range options_.Vars {
+		temp.CreateVariable(val, FnVarOptions{
+			Scope: VarScopeShared,
+		})
+	}
+
+	for _, val := range options_.privateVars {
+		temp.AddPrivateVars(val)
+	}
+
+	instance.Emit("function.new", temp)
+	return temp
+}
+
+type NodeLogEvent struct {
+	Instance   *Instance
+	Iface      *Interface
+	IfaceTitle string
+	Message    string
+}
+
+func (instance *Instance) _log(iface *Interface, message string) {
+	evData := NodeLogEvent{
+		Instance:   instance,
+		Iface:      iface,
+		IfaceTitle: iface.Title,
+		Message:    message,
+	}
+
+	if instance._mainInstance != nil {
+		instance._mainInstance.Emit("log", evData)
+	} else {
+		instance.Emit("log", evData)
+	}
+}
+
+func (instance *Instance) Destroy() {
+	instance.ClearNodes()
 }
 
 // Currently only one level

@@ -5,49 +5,39 @@ import (
 
 	Blackprint "github.com/blackprint/engine-go/blackprint"
 	"github.com/blackprint/engine-go/engine"
-	"github.com/blackprint/engine-go/types"
 )
 
 // ============
 type ButtonSimple struct {
-	*engine.Node
+	*engine.EmbedNode
 }
 type ButtonSimpleIFace struct {
-	*engine.Interface
+	*engine.EmbedInterface
 }
 
 func (iface *ButtonSimpleIFace) Clicked(ev any) {
 	log.Printf("\x1b[1m\x1b[33mButton\\Simple:\x1b[0m \x1b[33mI got '%d', time to trigger to the other node\x1b[0m\n", ev)
 
-	iface.Node.(*ButtonSimple).Output["Clicked"].Set(ev)
+	iface.Node.Output["Clicked"].Set(ev)
 }
 
 // This will be called from example.go
-func RegisterButton() {
-	ButtonSimpleOutput := engine.NodePort{
-		"Clicked": types.Function,
-	}
+func init() {
+	Blackprint.RegisterNode("Example/Button/Simple", &engine.NodeRegister{
+		Output: engine.PortTemplate{},
+		Input:  engine.PortTemplate{},
 
-	Blackprint.RegisterNode("Example/Button/Simple", func(instance *engine.Instance) any {
-		node := &ButtonSimple{
-			Node: &engine.Node{
-				Instance: instance,
+		Constructor: func(node *engine.Node) {
+			node.Embed = &ButtonSimple{}
 
-				// Node's Output Port Template
-				TOutput: ButtonSimpleOutput,
-			},
-		}
-
-		iface := node.SetInterface("BPIC/Example/Button").(*ButtonSimpleIFace)
-		iface.Title = "Button"
-
-		return node
+			iface := node.SetInterface("BPIC/Example/Button")
+			iface.Title = "Button"
+		},
 	})
 
-	Blackprint.RegisterInterface("BPIC/Example/Button", func(node any) any {
-		// node_ := node.(ButtonSimple)
-		return &ButtonSimpleIFace{
-			Interface: &engine.Interface{},
-		}
+	Blackprint.RegisterInterface("BPIC/Example/Button", &engine.InterfaceRegister{
+		Constructor: func(iface *engine.Interface) {
+			iface.Embed = &ButtonSimpleIFace{}
+		},
 	})
 }

@@ -12,4 +12,5 @@ const (
 	Int      = reflect.Int64
 	Float    = reflect.Float64
 	Any      = reflect.Interface
+	Route    = 99999 // ToDo: do we need to fix this magic number?
 )
